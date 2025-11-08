@@ -52,3 +52,7 @@ faiss_index
 
 # python
 __pycache__
+
+# removing .cursor and .vscode from repository
+.cursor
+.vscode
