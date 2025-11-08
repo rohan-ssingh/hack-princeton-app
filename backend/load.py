@@ -2,8 +2,6 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_core.documents.base import Blob
 
-from sqlalchemy.orm import Session
-
 import requests
 
 from pypdf import PdfReader
@@ -39,7 +37,7 @@ class Retrieval(TypedDict):
 class Storage:
     """Handles the storage and retrieval of document embeddings using FAISS & SQLAlchemy."""
     
-    def __init__(self, path: str, database: Session, from_path: bool = False):
+    def __init__(self, path: str, from_path: bool = False):
         """Initialize the Storage class.
 
         Args:
@@ -49,7 +47,6 @@ class Storage:
         """
         self.vector_store = None
         self.FAISS_INDEX_PATH = path
-        self.database = database
 
         # if a vector store already exists at path, and user specifies from_path, then load vector store from path rather than intializing a new one.
         if from_path:
@@ -99,34 +96,21 @@ class Storage:
             response=response,
         )
         
-    def add_documents(self, documents: List[Document], metadata: dict):
-        """Adds documents to the vector store and records metadata in the database.
+    def add_documents(self, documents: List[Document]):
+        """Adds documents to the vector store.
         
         Args:
             documents (List[Document]): A list of Document objects to be added.
-            metadata (dict): A dictionary of metadata associated with the source file of the documents.
         """
-        from db import ChunkMetadata # Import here to avoid circular dependency
-
         if (
             not self.vector_store
         ):  # if vector store is not initialized, create a new one
             self.vector_store = FAISS.from_documents(
                 documents=documents, embedding=embeddings
             )
-            # After initialization, the ids are in index_to_docstore_id
-            ids = list(self.vector_store.index_to_docstore_id.values())
         else:  # otherwise, add to existing vector store
-            ids = self.vector_store.add_documents(documents=documents)
+            self.vector_store.add_documents(documents=documents)
         
-        # Save metadata for each chunk
-        for doc_id in ids:
-            # Filter metadata to only include columns present in the ChunkMetadata table
-            db_metadata = {k: v for k, v in metadata.items() if hasattr(ChunkMetadata, k)}
-            chunk_record = ChunkMetadata(id=doc_id, **db_metadata)
-            self.database.merge(chunk_record) # Use merge to handle potential re-runs
-
-        self.database.commit()
         self.vector_store.save_local(self.FAISS_INDEX_PATH)
 
 class PDF:
@@ -150,7 +134,7 @@ class PDF:
 
         # split & store documents
         splits = text_splitter.split_documents([document])
-        self.storage.add_documents(documents=splits, metadata=metadata)
+        self.storage.add_documents(documents=splits)
 
     def _load_documents(self, pdf_file: str | IO) -> Document:
         """

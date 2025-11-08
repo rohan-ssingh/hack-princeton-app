@@ -5,22 +5,11 @@ from datetime import datetime
 import json
 from langchain_core.documents import Document
 
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
-
 from load import Storage, PDF, text_splitter
-from db import Base, ChunkMetadata
-
-# --- Database Setup ---
-DB_PATH = "vector_metadata.sqlite"
-engine = create_engine(f"sqlite:///{DB_PATH}")
-Base.metadata.create_all(engine)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-db_session = SessionLocal()
 
 # --- Vector Store Setup ---
 FAISS_PATH = "faiss_index"
-storage = Storage(path=FAISS_PATH, database=db_session)
+storage = Storage(path=FAISS_PATH)
 
 # --- Data Directories ---
 ACTS_DIR = Path(__file__).parent.parent / "scraped_data/vermont_acts_2026"
@@ -89,7 +78,7 @@ def get_transcript_metadata(transcript_entry: dict, chamber: str) -> dict:
         "source_url": transcript_entry.get("url"),
         "chamber": chamber,
         "journal_date": journal_date,
-        "meeting_time": time_str, # New metadata field for time
+        "meeting_time": time_str, 
         "bill_number": None,
         "act_summary": None,
         "as_enacted": None,
@@ -135,7 +124,7 @@ def upload_files():
                         metadata = get_transcript_metadata(transcript_entry, chamber_name)
                         doc.metadata.update(metadata)
                         splits = text_splitter.split_documents([doc])
-                        storage.add_documents(documents=splits, metadata=metadata)
+                        storage.add_documents(documents=splits)
                         print(f"Processing transcript from {transcript_entry.get('url')} (Chamber: {chamber_name}, Committee: {committee_abbr})")
 
     print("Upload complete.")
