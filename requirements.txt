@@ -1,0 +1,8 @@
+langchain
+faiss-cpu
+langchain-community
+langchain-openai
+sentence-transformers
+langchain-text-splitters
+langchain-core
+beautifulsoup4

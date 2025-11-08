@@ -51,27 +51,35 @@ def download_pdfs(pdf_urls, download_dir):
     """
     Downloads all PDFs from the given set of URLs into the download directory.
     """
-    if not pdf_urls:
-        print("No PDFs to download.")
+    os.makedirs(download_dir, exist_ok=True)
+
+    existing_files = set(os.listdir(download_dir))
+    to_download_urls = []
+    skipped_count = 0
+
+    for url in pdf_urls:
+        filename = url.split("/")[-1]
+        if filename in existing_files:
+            print(f"Skipping {filename} (already exists).")
+            skipped_count += 1
+        else:
+            to_download_urls.append(url)
+
+    if not to_download_urls:
+        if skipped_count == len(pdf_urls) and len(pdf_urls) > 0:
+            print("All PDFs already exist. No new downloads needed.")
+        else:
+            print("No PDFs to download.")
         return
 
-    print(f"\nStarting download of {len(pdf_urls)} unique PDF(s)...")
-    os.makedirs(download_dir, exist_ok=True)
+    print(f"\nStarting download of {len(to_download_urls)} new PDF(s)...")
     
-    for url in pdf_urls:
+    for url in to_download_urls:
         # Get filename from the URL
         filename = url.split("/")[-1]
         file_path = os.path.join(download_dir, filename)
-        
-        if os.path.exists(file_path):
-            print(f"Skipping {filename} (already exists).")
-            continue
             
         try:
-            # Add a polite delay *before* each download request
-            print("Waiting 1 seconds to be polite...")
-            time.sleep(1)  # <-- Add delay
-            
             print(f"Downloading {filename}...")
             pdf_response = requests.get(url, headers=HEADERS)  # <-- Add headers
             pdf_response.raise_for_status()

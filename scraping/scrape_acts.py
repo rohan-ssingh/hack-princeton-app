@@ -9,7 +9,7 @@ STATUS_URL_TEMPLATE = "https://legislature.vermont.gov/bill/status/2026/{bill_na
 BASE_URL = "https://legislature.vermont.gov/"
 DOWNLOAD_DIR = "vermont_acts_2026"
 # Stop after this many consecutive 404s
-MAX_CONSECUTIVE_FAILURES = 20
+MAX_CONSECUTIVE_FAILURES = 1 # <-- Changed to 1 as requested
 # ---------------------
 
 def download_act_pdfs(bill_url, bill_name, download_dir):
@@ -23,17 +23,21 @@ def download_act_pdfs(bill_url, bill_name, download_dir):
     try:
         response = requests.get(bill_url)
         
-        # Check for 404 Not Found
-        if response.status_code == 404:
-            print(f"--- {bill_name} does not exist. Skipping.")
-            return 404
-        
         # Check for other HTTP errors
         response.raise_for_status()
         
         # If we get here, the page exists (HTTP 200)
-        print(f"--- Checking {bill_name} ---")
         soup = BeautifulSoup(response.text, "html.parser")
+
+        # --- New check: Validate page has a bill title ---
+        # Find <div class="bill-title">
+        title_div = soup.find("div", class_="bill-title")
+        if not title_div:
+            print(f"--- {bill_name} is not a valid bill page (no title).")
+            return 404 # Treat as failure to stop iteration
+        # --- End of new check ---
+
+        print(f"--- Checking {bill_name} ---")
         
         # Look for the specific div
         act_div = soup.find("div", id="act")
@@ -42,8 +46,17 @@ def download_act_pdfs(bill_url, bill_name, download_dir):
             print(f"No 'act' tab found for {bill_name}.")
             return 200 # Page existed, but no act
 
+        # --- Modified PDF link finding logic ---
         # Find all PDF links within that div
-        pdf_links = act_div.find_all("a", href=lambda h: h and ".pdf" in h.lower())
+        all_links = act_div.find_all("a", href=True)
+        pdf_links = []
+        for link in all_links:
+            link_text = link.text.strip()
+            href = link.get("href", "").lower()
+            # Only grab the specific links requested
+            if (link_text == "As Enacted" or link_text == "Act Summary") and ".pdf" in href:
+                pdf_links.append(link)
+        # --- End of modified logic ---
         
         if not pdf_links:
             print(f"'act' div found, but no PDF links inside for {bill_name}.")
@@ -98,12 +111,12 @@ def iterate_and_scrape(bill_prefix, download_dir):
         
         if status == 404:
             consecutive_failures += 1
-        elif status == 200:
+        else: # Any success or server error
             consecutive_failures = 0 # Reset on success
         # If status is 500 (other error), we also reset,
         # just in case it was a temporary server glitch.
-        else: 
-            consecutive_failures = 0 
+        # else:  <-- Old logic
+        #     consecutive_failures = 0 
             
         i += 1
         time.sleep(0.25) # Be polite
