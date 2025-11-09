@@ -11,7 +11,7 @@ JOURNAL_PAGES = [
     "https://legislature.vermont.gov/senate/service/2026/journal"
 ]
 BASE_URL = "https://legislature.vermont.gov/"
-DOWNLOAD_DIR = "vermont_journals_2026"
+DOWNLOAD_DIR = "scraped_data/vermont_journals_2026"
 
 # Pretend to be a real browser to avoid simple bot detection
 HEADERS = {

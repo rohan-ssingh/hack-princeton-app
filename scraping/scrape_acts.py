@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 # --- Configuration ---
 STATUS_URL_TEMPLATE = "https://legislature.vermont.gov/bill/status/2026/{bill_name}"
 BASE_URL = "https://legislature.vermont.gov/"
-DOWNLOAD_DIR = "vermont_acts_2026"
+DOWNLOAD_DIR = "scraped_data/vermont_acts_2026"
 # Stop after this many consecutive 404s
 MAX_CONSECUTIVE_FAILURES = 1 # <-- Changed to 1 as requested
 # ---------------------

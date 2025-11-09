@@ -44,5 +44,15 @@ yarn-error.log*
 /playwright/*
 
 # files
-vermont_acts_2026
-vermont_journals_2026
+scraped_data
+
+# backend storage
+faiss_index
+*.sqlite
+
+# python
+__pycache__
+
+# removing .cursor and .vscode from repository
+.cursor
+.vscode

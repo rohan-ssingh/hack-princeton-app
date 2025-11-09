@@ -6,3 +6,7 @@ sentence-transformers
 langchain-text-splitters
 langchain-core
 beautifulsoup4
+pypdf
+fastapi
+dedalus_labs
+uvicorn
