@@ -41,15 +41,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const userEmail = session.user.email;
   let initialUserTopics: string[] = [];
-  let initialUserLocations: string | null = null;
-  let initialUserDepth: number | null = null;
 
   if (userEmail) {
     const [dbUser] = await getUser(userEmail);
     if (dbUser) {
       initialUserTopics = dbUser.topics ?? [];
-      initialUserLocations = dbUser.locations ?? null;
-      initialUserDepth = dbUser.depth ?? null;
     }
   }
 
@@ -67,8 +63,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           initialMessages={uiMessages}
           initialVisibilityType={chat.visibility}
           initialUserTopics={initialUserTopics}
-          initialUserLocations={initialUserLocations}
-          initialUserDepth={initialUserDepth}
           isReadonly={session?.user?.id !== chat.userId}
         />
         <DataStreamHandler />
@@ -86,8 +80,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         initialMessages={uiMessages}
         initialVisibilityType={chat.visibility}
         initialUserTopics={initialUserTopics}
-        initialUserLocations={initialUserLocations}
-        initialUserDepth={initialUserDepth}
         isReadonly={session?.user?.id !== chat.userId}
       />
       <DataStreamHandler />

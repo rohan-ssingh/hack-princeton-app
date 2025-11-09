@@ -1,384 +1,191 @@
-# rag_run.py
-from __future__ import annotations
+import json
+from pydantic import BaseModel, Field
+from typing import List, Optional, Any, Set
+from dataclasses import dataclass
+# Import messages for building the new prompt
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from pathlib import Path  # <-- ADDED
 
-import os
-import re
-from datetime import datetime
-from pathlib import Path
-from textwrap import dedent
-from typing import Any, Dict, List, Optional, Tuple
-
-from dotenv import load_dotenv
-
-# Load backend/.env if present
-load_dotenv()
-
-# Your Storage comes from load.py (unchanged)
-from load import Storage
+# --- USER: EDIT THIS ---
+#
+# Assumptions:
+# 1. Your class with the .rag() method is in a file named `storage.py`.
+# 2. The class itself is named `LegislatureStorage`.
+# 3. Your `Retrieval` object is also defined in `storage.py`.
+# 4. Your `llm` and `prompt` are in `llm.py`.
+#
+# Please CHANGE these imports to match your actual project structure.
+from load import Storage, Retrieval  # <-- CHANGED
+from llm import llm                       # <-- CHANGED
 
 
-# ----------------------------
-# Config & constants
-# ----------------------------
-FAISS_PATH = "faiss_index"
+# 1. Define the Pydantic Schema for a single article
+class Article(BaseModel):
+    """A well-structured article with a title, summary, and body."""
+    article_title: str = Field(..., description="A catchy, descriptive title for the article.")
+    article_summary: str = Field(..., description="A concise, one-paragraph summary of the article's main points.")
+    article_body: str = Field(
+        ..., 
+        description="The full body of the article, written in plain text. Do not use markdown."
+    )
 
-# # Try multiple keys for titles/urls/dates to be robust across corpora
-META_TITLE_KEYS = ["title", "doc_title", "filename", "name", "heading", "document_title"]
-# put near the top of rag_run.py
+# 2. Define the Pydantic Schema for the list of 5 articles
+# This is what we'll ask the LLM to generate in one go.
+class ArticleSet(BaseModel):
+    """A collection of 5 distinct articles on a given topic."""
+    articles: List[Article] = Field(
+        ..., 
+        description="A list of 5 unique articles covering different aspects of the topic."
+    )
 
-META_URL_KEYS   = [
-    "source_url", "url", "document_url", "page_url", "permalink", "href", "link",
-    "web_url", "bill_url", "pdf_url", "html_url", "source"
+
+# 3. Define the topics from your image
+TOPICS = [
+    "Housing & Development",
+    "Education Funding & Property Tax",
+    "Taxes & Economic Policy",
+    "Environment & Climate",
+    "Workforce & Labor",
+    "Healthcare & Mental Health",
+    "Public Safety & Justice",
+    "Infrastructure & Energy",
+    "Civic & Electoral Reform"
 ]
-META_DATE_KEYS  = ["journal_date", "date", "published", "pub_date", "created", "updated_at"]
-# we’ll custom-build title from file_name / bill_number / chamber / act_summary
-# but keep a few generic fallbacks:
-META_TITLE_FALLBACK_KEYS = ["title", "doc_title", "filename", "name", "heading", "document_title", "id", "doc_id", "slug"]
 
-def _first_meta(meta: dict, keys: list[str]) -> str | None:
-    for k in keys:
-        v = meta.get(k)
-        if v:
-            return str(v)
-    return None
+# 4. REMOVED ASPECT_PROMPTS, as requested
 
-def _format_date(d: str | None) -> str | None:
-    if not d: return None
-    from datetime import datetime
-    try:
-        return datetime.fromisoformat(d[:10]).date().isoformat()
-    except Exception:
-        return d
+# 5. Define the new System Prompt for the LLM
+SYSTEM_PROMPT = """You are an expert legislative reporter and journalist. Your task is to write 5 distinct, high-quality articles based *only* on the provided legislative context.
 
-def _slug_to_title(s: str) -> str:
-    """Turn 'VTHouseEnergyDigitalInfra_2025-05-15_09-03.html' into 'VTHouseEnergyDigitalInfra (2025-05-15 09:03)'."""
-    import os, re
-    base = os.path.basename(s)
-    base = re.sub(r"\.[A-Za-z0-9]+$", "", base)          # drop extension
-    pretty = base.replace("_", " ").strip()
-    pretty = re.sub(r"(\d{4}-\d{2}-\d{2})[_-](\d{2})[-:](\d{2})", r"\1 \2:\3", pretty)
-    return pretty if pretty else "Untitled"
+Each of the 5 articles MUST cover a different aspect of the main topic. For example:
+1.  A summary of key bills passed or debated.
+2.  The financial implications and economic impact.
+3.  The main arguments for and against proposals (key debates).
+4.  Public testimony, community concerns, and stakeholder feedback.
+5.  Future outlook, upcoming priorities, or next steps.
 
-def _compose_title(meta: dict, i: int) -> str:
+Do not just summarize the documents. Synthesize the information into 5 complete, well-written, journalistic articles. Ensure the articles are different from each other and provide unique value.
+"""
+
+
+def generate_all_articles():
     """
-    Make a human-readable title:
-      1) file_name (slug → title)
-      2) chamber + bill_number
-      3) act_summary (shortened)
-      4) fallbacks in META_TITLE_FALLBACK_KEYS
-      5) 'Doc i'
+    Main function to loop through all topics and aspects,
+    call the RAG function, and save the results to JSON.
     """
-    fn = meta.get("file_name")
-    if fn:
-        return _slug_to_title(str(fn))
-
-    chamber = meta.get("chamber")
-    bill    = meta.get("bill_number")
-    if chamber or bill:
-        parts = [p for p in [chamber, bill] if p]
-        return " — ".join(parts)
-
-    summary = meta.get("act_summary")
-    if summary:
-        s = str(summary).strip()
-        return s if len(s) <= 80 else s[:77] + "…"
-
-    fb = _first_meta(meta, META_TITLE_FALLBACK_KEYS)
-    if fb:
-        return fb
-
-    return f"Doc {i}"
-
-def _file_uri_if_path(s: str) -> str:
-    """Convert existing local paths to file:// URIs; leave non-existing strings untouched."""
+    
+    # --- USER: EDIT THIS ---
+    # Initialize your storage class here.
+    # This instance must have the .rag() method.
     try:
-        from pathlib import Path
-        p = Path(s)
-        if p.exists():
-            return p.resolve().as_uri()
-        return s
-    except Exception:
-        return s
+        BASE_DIR = Path(__file__).resolve().parent
+        FAISS_PATH = str((BASE_DIR.parent / "faiss_index").resolve())
+        storage = Storage(path=FAISS_PATH, from_path=True)
+    except Exception as e:
+        print(f"!! ERROR: Failed to initialize your `Storage` class: {e}")  # <-- CHANGED
+        print("Please make sure the class is imported correctly and can be initialized.")
+        return
+    # --- END USER EDIT ---
 
-def _pick_top_docs_for_citations(docs, k: int = 10):
-    return list(docs[:k])
+    all_articles_data = []
+    total_topics = len(TOPICS)
+    article_count = 0
 
-def _build_cited_sources(docs_top: list) -> list[dict]:
-    out = []
-    for i, d in enumerate(docs_top, start=1):
-        meta = getattr(d, "metadata", {}) or {}
+    print(f"Starting article generation for {total_topics} topics...")
 
-        # URL: prefer source_url (your corpus), then other URL-like keys, then path-like fallback
-        url = _first_meta(meta, META_URL_KEYS)
-        if not url:
-            # try path-ish keys and turn them into file:// if present
-            path_like = _first_meta(meta, ["source", "file_path", "filepath", "path", "pdf_path"])
-            if path_like:
-                url = _file_uri_if_path(path_like)
-
-        # Title: prefer smart composition using your fields
-        title = _compose_title(meta, i)
-
-        # Date
-        date = _format_date(_first_meta(meta, META_DATE_KEYS))
-        label = f"{title} ({date})" if date else title
-
-        out.append({"S": f"S{i}", "title": label, "url": url or ""})
-    return out
-
-# ----------------------------
-# Helpers
-# ----------------------------
-def _ensure_index(path: str) -> None:
-    """Verify the FAISS folder and required files exist."""
-    p = Path(path)
-    if not p.exists() or not p.is_dir():
-        raise FileNotFoundError(f"FAISS_INDEX_PATH not a directory: {path}")
-    missing = [name for name in ("index.faiss", "index.pkl") if not (p / name).exists()]
-    if missing:
-        raise FileNotFoundError(f"Missing files in {path}: {missing}")
-
-
-def _first_meta(meta: Dict[str, Any], keys: List[str]) -> Optional[str]:
-    for k in keys:
-        v = meta.get(k)
-        if v is not None and v != "":
-            return str(v)
-    return None
-
-
-def _format_date(d: Optional[str]) -> Optional[str]:
-    if not d:
-        return None
-    # accept ISO dates or leave as-is if not parseable
-    try:
-        return datetime.fromisoformat(d[:10]).date().isoformat()
-    except Exception:
-        return d
-
-
-def _build_sources(docs: List[Any], max_sources: int = 12) -> List[Dict[str, str]]:
-    """Build a deduped, capped list of sources with best-effort title/date/url."""
-    seen = set()
-    out: List[Dict[str, str]] = []
-    for i, d in enumerate(docs, start=1):
-        meta = getattr(d, "metadata", {}) or {}
-        url = _first_meta(meta, META_URL_KEYS) or ""
-        title = _first_meta(meta, META_TITLE_KEYS) or f"Doc {i}"
-        date = _format_date(_first_meta(meta, META_DATE_KEYS))
-        key = (title.strip(), url.strip())
-        if key in seen:
-            continue
-        seen.add(key)
-        label = f"{title} ({date})" if date else title
-        out.append({"title": label, "url": url})
-        if len(out) >= max_sources:
-            break
-    return out
-
-
-def _make_summary(text: str, max_chars: int = 400) -> str:
-    """Take the first few sentences, capped to max_chars."""
-    if not text:
-        return "No summary returned."
-    parts = re.split(r'(?<=[.!?])\s+', text.strip())
-    s = " ".join(parts[:3]) or text.strip()
-    if len(s) > max_chars:
-        s = s[:max_chars].rstrip() + "..."
-    return s
-
-
-def _stitch(prompt: str, docs: List[Dict[str, Any]], summary: str) -> str:
-    """Fallback article builder (no external LLM)."""
-    bullets = []
-    for i, d in enumerate(docs[:8], start=1):
-        meta = getattr(d, "metadata", {}) or {}
-        src = _first_meta(meta, META_URL_KEYS) or ""
-        title = _first_meta(meta, META_TITLE_KEYS) or f"Doc {i}"
-        bullets.append(f"- {title}: {src}" if src else f"- {title}")
-
-    body = [
-        f"# {prompt}",
-        "",
-        "## Executive Summary",
-        summary or "No summary returned.",
-        "",
-        "## Synthesis",
-        "Below is a synthesis derived from top-ranked retrieved materials:",
-        "",
-    ]
-    for i, d in enumerate(docs[:6], start=1):
-        text = (getattr(d, "page_content", None) or getattr(d, "content", None) or "").strip()
-        meta = getattr(d, "metadata", {}) or {}
-        tag = _first_meta(meta, META_TITLE_KEYS) or f"Doc {i}"
-        if text:
-            excerpt = "\n".join(text.split("\n")[:6])
-            body += [f"### {tag}", excerpt, ""]
-    body += ["## Sources", *bullets, ""]
-    return "\n".join(body)
-
-
-def _article_with_citations(prompt, summary, docs_top, cited_sources, model_hint=None):
-    import os
-    from textwrap import dedent
-    try:
-        from openai import OpenAI
-    except Exception:
-        return None
-    key = os.getenv("OPENAI_API_KEY")
-    if not key:
-        return None
-
-    # compact snippets from the same docs used for S1..Sk
-    snippets = []
-    for i, d in enumerate(docs_top, start=1):
-        meta = getattr(d, "metadata", {}) or {}
-        title = _first_meta(meta, META_TITLE_KEYS) or cited_sources[i-1]["title"]
-        url = cited_sources[i-1]["url"]
-        text = (getattr(d, "page_content", None) or getattr(d, "content", None) or "")[:1500]
-        snippets.append({"sref": f"S{i}", "title": title, "url": url, "snippet": text})
-
-    system = dedent("""
-      You write concise, well-structured briefings with short headings.
-      Use ONLY the provided summary and snippets. Insert inline citations like [S1], [S2] when you draw from snippets.
-      If information is not present, say so. End with a 3–5 bullet "Key Takeaways".
-    """).strip()
-
-    user = {
-        "task": prompt,
-        "retrieval_summary": summary,
-        "snippets": snippets,
-        "sources": cited_sources,  # includes S labels
-    }
-
-    try:
-        client = OpenAI(api_key=key)
-        model = model_hint or os.getenv("RAG_MODEL") or "gpt-4o-mini"
-        res = client.chat.completions.create(
-            model=model,
-            temperature=0.3,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": str(user)},
-            ],
-        )
-        content = res.choices[0].message.content.strip()
-    except Exception:
-        return None
-
-    # Append explicit References section so [S1] etc. are visible to readers
-    refs_lines = ["", "## References"]
-    for s in cited_sources:
-        line = f"- [{s['S']}] {s['title']}"
-        if s["url"]:
-            line += f" — {s['url']}"
-        refs_lines.append(line)
-    return content + "\n" + "\n".join(refs_lines) + "\n"
-
-
-# ----------------------------
-# Core RAG
-# ----------------------------
-def run_rag(
-    prompt: str,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    use_llm: bool = True,
-    model_hint: Optional[str] = None,
-) -> Dict[str, Any]:
-    """
-    Runs retrieval-augmented generation using Storage.rag(question=..., date_range=[start,end])
-    and returns a feed item:
-        { "title", "summary", "content", "sources" }
-    where "sources" is an S-mapped list:
-        [{ "S": "S1", "title": "...", "url": "..." }, ...]
-    """
-    # 1) Ensure index + create Storage
-    _ensure_index(FAISS_PATH)
-    storage = Storage(path=FAISS_PATH, from_path=True)
-
-    # 2) Query with optional date range; retry without it if it wipes results
-    date_range = [start_date or "", end_date or ""] if (start_date or end_date) else None
-    result = storage.rag(question=prompt, schema=None, date_range=date_range)
-    docs = result.get("documents", [])
-
-    #
-    # # --- TEMP DEBUG: show what metadata keys exist in your top docs ---
-    # try:
-    #     print("\n[DEBUG] Top doc metadata keys & example values:")
-    #     for i, d in enumerate(docs[:5], start=1):
-    #         meta = getattr(d, "metadata", {}) or {}
-    #         print(f"Doc {i} keys:", sorted(list(meta.keys())))
-    #         # show a couple representative fields if present
-    #         for k in (
-    #         "title", "filename", "name", "source", "url", "link", "href", "page_url", "file_path", "source_url",
-    #         "document_url"):
-    #             if k in meta:
-    #                 print(f"  {k} -> {meta[k]}")
-    #     print()
-    # except Exception as _e:
-    #     pass
-    # # --- END TEMP DEBUG ---
-
-
-    resp = result.get("response", "")
-
-    if date_range and not docs:
-        # Fallback — run again with no date filter if nothing found
-        result = storage.rag(question=prompt, schema=None, date_range=None)
-        docs = result.get("documents", [])
-        resp = result.get("response", "")
-
-    # 3) Normalize response text to build a summary
-    if hasattr(resp, "model_dump_json"):           # Pydantic v2 models
-        resp_text = resp.model_dump_json()
-    elif hasattr(resp, "json"):                    # Pydantic v1 models
+    for i, topic in enumerate(TOPICS):
+        print(f"\n--- Processing Topic {i+1}/{total_topics}: {topic} ---")
+        
         try:
-            resp_text = resp.json()
-        except Exception:
-            resp_text = str(resp)
-    else:
-        resp_text = str(resp)
+            # 1. Make one RAG query per category, with no schema
+            print(f"  (Step 1/3) Retrieving documents for '{topic}'...")
+            rag_question = f"All relevant legislative documents (transcripts, bills, journals) regarding {topic}"
+            
+            retrieval: Retrieval = storage.rag(
+                question=rag_question,
+                schema=None,  # <-- Set to None as requested
+                date_range=None
+            )
+            
+            # 2. Collect document content and URLs
+            documents: List[Any] = retrieval['documents']
+            if not documents:
+                print(f"  !! WARNING: No documents found for topic '{topic}'. Skipping.")
+                continue
 
-    summary = _make_summary(resp_text)
+            docs_content = "\n\n".join(doc.page_content for doc in documents)
+            
+            referenced_urls: Set[str] = set()
+            for doc in documents:
+                if hasattr(doc, 'metadata') and isinstance(doc.metadata, dict) and doc.metadata.get('source_url'):
+                    referenced_urls.add(doc.metadata['source_url'])
+            
+            print(f"  (Step 2/3) Retrieved {len(documents)} documents. Generating 5 articles...")
 
-    # 4) Build a stable S1..Sk mapping from the same top-K docs we’ll cite/snippet
-    docs_top = _pick_top_docs_for_citations(docs, k=10)
-    cited_sources = _build_cited_sources(docs_top)   # [{'S':'S1','title':'..','url':'..'}, ...]
+            # 3. Build the prompt for the LLM to generate 5 articles
+            human_prompt = f"""Here is the legislative context on the topic of "{topic}":
+            
+            --- BEGIN CONTEXT ---
+            {docs_content}
+            --- END CONTEXT ---
+            
+            Please generate 5 complete, distinct articles based *only* on this context,
+            following the schema provided.
+            """
+            
+            messages = [
+                SystemMessage(content=SYSTEM_PROMPT),
+                HumanMessage(content=human_prompt)
+            ]
+            
+            # 4. Call the LLM with the structured output schema for 5 articles
+            # We use the 'llm' imported from llm.py
+            article_set_response: ArticleSet = llm.with_structured_output(ArticleSet).invoke(messages)
+            
+            generated_articles: List[Article] = article_set_response.articles
+            
+            if not generated_articles:
+                print(f"  !! WARNING: LLM generated 0 articles for '{topic}'.")
+                continue
 
-    # 5) Generate article with inline citations via LLM (or stitch fallback)
-    content: Optional[str] = None
-    if use_llm:
-        content = _article_with_citations(
-            prompt=prompt,
-            summary=summary,
-            docs_top=docs_top,
-            cited_sources=cited_sources,
-            model_hint=model_hint,
-        )
+            print(f"  (Step 3/3) Successfully generated {len(generated_articles)} articles.")
 
-    if not content:
-        # Non-LLM fallback: stitch + append a References section that matches S-labels
-        content = _stitch(prompt, docs_top, summary)
-        refs = ["", "## References"] + [
-            f"- [{s['S']}] {s['title']}" + (f" — {s['url']}" if s['url'] else "")
-            for s in cited_sources
-        ]
-        content += "\n" + "\n".join(refs) + "\n"
+            # 5. Format and append the articles to our main list
+            for article_output in generated_articles:
+                article_count += 1
+                article_entry = {
+                    "category_name": topic,
+                    "article_title": article_output.article_title,
+                    "article_summary": article_output.article_summary,
+                    "article_body": article_output.article_body,
+                    "referenced_urls": list(referenced_urls) # All articles from this batch share the same refs
+                }
+                all_articles_data.append(article_entry)
 
-    # 6) Return feed item (sources already carry S-labels)
-    return {
-        "title": prompt,
-        "summary": summary,
-        "content": content,
-        "sources": cited_sources,
-    }
+        except Exception as e:
+            print(f"  !! FAILED to process topic '{topic}'.")
+            print(f"  Error: {e}")
+            # Add a placeholder entry so we know it failed
+            all_articles_data.append({
+                "category_name": topic,
+                "article_title": f"FAILED to process topic: {topic}",
+                "article_summary": f"Generation failed with error: {e}",
+                "article_body": "",
+                "referenced_urls": []
+            })
 
+    # 6. Save the final JSON output
+    output_filename = "generated_articles.json"
+    print(f"\n--- All processing complete! ---")
+    print(f"Generated a total of {len(all_articles_data)} article entries.")
+    
+    try:
+        with open(output_filename, "w", encoding="utf-8") as f:
+            json.dump(all_articles_data, f, indent=2, ensure_ascii=False)
+        print(f"Results successfully saved to {output_filename}")
+    except IOError as e:
+        print(f"!! ERROR: Failed to write output file: {e}")
 
+# 7. Run the script
 if __name__ == "__main__":
-    item = run_rag("State of AI policy proposals in the last 90 days")
-    print("=== FEED ITEM ===")
-    print("Title:", item["title"])
-    print("Summary:\n", item["summary"], "\n")
-    print("Article (first 800 chars):\n", item["content"][:800], "...\n")
-    print("Sources:", item["sources"])
+    generate_all_articles()
