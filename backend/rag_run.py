@@ -59,13 +59,21 @@ def run_rag(
     _ensure_index(FAISS_PATH)
     storage = Storage(path=FAISS_PATH, from_path=True)
 
-    dr = _date_range_list(start_date, end_date)
-    result = storage.rag(question=prompt, schema=None, date_range=dr)
+    # Build date_range only if both are given
+    date_range = [start_date or "", end_date or ""] if (start_date or end_date) else None
 
+    # First attempt (with date_range if provided)
+    result = storage.rag(question=prompt, schema=None, date_range=date_range)
     docs = result.get("documents", [])
     resp = result.get("response", "")
 
-    # response may be BaseModel or str
+    # If we passed a date_range and got no docs, retry with no date filter
+    if date_range and not docs:
+        result = storage.rag(question=prompt, schema=None, date_range=None)
+        docs = result.get("documents", [])
+        resp = result.get("response", "")
+
+    # Normalize response text
     if hasattr(resp, "model_dump_json"):
         resp_text = resp.model_dump_json()
     elif hasattr(resp, "json"):
@@ -78,7 +86,6 @@ def run_rag(
 
     summary = _make_summary(resp_text)
     content = resp_text if resp_text else "No content generated."
-
     feed_item = {
         "title": prompt,
         "summary": summary,
