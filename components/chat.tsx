@@ -161,10 +161,12 @@ export function Chat({
   const [hasAppendedQuery, setHasAppendedQuery] = useState(false);
   const [isChatExpanded, setIsChatExpanded] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
 
   const messageEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const mainFeedRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setMessages(initialMessages);
@@ -191,6 +193,43 @@ export function Chat({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isUserMenuOpen]);
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const mainElement = mainFeedRef.current;
+      if (!mainElement) {
+        return;
+      }
+
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed) {
+        setSelectedText("");
+        return;
+      }
+
+      const anchorNode = selection.anchorNode;
+      const focusNode = selection.focusNode;
+      const text = selection.toString().trim();
+
+      if (
+        text &&
+        anchorNode &&
+        focusNode &&
+        mainElement.contains(anchorNode) &&
+        mainElement.contains(focusNode)
+      ) {
+        setSelectedText(text);
+        return;
+      }
+
+      setSelectedText("");
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, []);
 
   const backendEndpoint = useMemo(() => normalizeBackendEndpoint(), []);
 
@@ -241,16 +280,6 @@ export function Chat({
           "Voted against increased education funding, citing budget concerns despite campaign commitments.",
         timestamp: "2 days ago",
       },
-    ],
-    []
-  );
-
-  const suggestedQuestions = useMemo(
-    () => [
-      "What bills did they vote on?",
-      "Compare promises vs actions",
-      "How do I contact them?",
-      "Show recent updates",
     ],
     []
   );
@@ -404,16 +433,6 @@ export function Chat({
     }
   }, [messages, status]);
 
-  const handleSuggestionClick = (question: string) => {
-    if (isReadonly) {
-      return;
-    }
-    setInput(question);
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-    });
-  };
-
   const handleSend = () => {
     if (isReadonly || status === "loading") {
       return;
@@ -429,9 +448,31 @@ export function Chat({
     sendMessage(trimmed);
   };
 
+  const handleInsertSelectedText = useCallback(() => {
+    const trimmedSelection = selectedText.trim();
+    if (!trimmedSelection) {
+      return;
+    }
+
+    setInput((previous) => {
+      if (!previous) {
+        return trimmedSelection;
+      }
+      const needsSpace = /\s$/.test(previous);
+      return `${previous}${needsSpace ? "" : " "}${trimmedSelection}`;
+    });
+    setSelectedText("");
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+    if (typeof window !== "undefined") {
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+    }
+  }, [selectedText]);
+
   const isAuthLoading = authStatus === "loading";
   const isSendDisabled = status === "loading" || isReadonly;
-  const showSuggestions = messages.length === 0;
 
   return (
     <div className="relative flex h-dvh w-full overflow-hidden bg-black text-white">
@@ -502,7 +543,10 @@ export function Chat({
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-black via-gray-950/10 to-black px-6 py-6">
+        <main
+          ref={mainFeedRef}
+          className="flex-1 overflow-y-auto bg-gradient-to-br from-black via-gray-950/10 to-black px-6 py-6"
+        >
           <div className="mx-auto max-w-4xl">
             <div className="mb-8">
               <div className="mb-3 flex items-center space-x-3">
@@ -636,24 +680,6 @@ export function Chat({
               </p>
             </div>
 
-            {showSuggestions && (
-              <div className="space-y-2 px-5 py-4">
-                <p className="mb-3 text-xs font-semibold text-gray-400">
-                  SUGGESTED QUESTIONS
-                </p>
-                {suggestedQuestions.map((question) => (
-                  <button
-                    key={question}
-                    onClick={() => handleSuggestionClick(question)}
-                    className="w-full rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-2.5 text-left text-xs text-gray-200 transition-all hover:border-gray-600/50 hover:bg-gray-700/50"
-                    type="button"
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
-            )}
-
             <div className="flex-1 overflow-y-auto px-5 py-4">
               <div className="flex flex-col space-y-3">
                 {messages.map((message) => {
@@ -730,6 +756,25 @@ export function Chat({
             </div>
 
             <div className="border-t border-gray-800 bg-gray-900/30 px-5 py-4">
+              {selectedText && (
+                <div className="mb-3 rounded-xl border border-gray-700/70 bg-gray-800/60 px-3 py-3 text-sm text-gray-100 shadow-inner">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      Selected text
+                    </span>
+                    <button
+                      onClick={handleInsertSelectedText}
+                      type="button"
+                      className="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-black shadow hover:bg-gray-200"
+                    >
+                      Add to chat
+                    </button>
+                  </div>
+                  <p className="mt-2 max-h-24 overflow-y-auto text-sm leading-snug text-gray-200">
+                    {selectedText}
+                  </p>
+                </div>
+              )}
               <div className="flex space-x-2">
                 <input
                   ref={inputRef}
@@ -765,7 +810,7 @@ export function Chat({
         )}
       </div>
 
-      <button
+      {/* <button
         onClick={() => setIsChatExpanded((prev) => !prev)}
         className="fixed bottom-6 right-4 z-40 rounded-full bg-white p-4 text-black shadow-2xl transition-transform hover:scale-110 hover:bg-gray-200"
         type="button"
@@ -780,7 +825,7 @@ export function Chat({
         <span className="sr-only">
           {isChatExpanded ? "Collapse chat" : "Expand chat"}
         </span>
-      </button>
+      </button> */}
     </div>
   );
 }
