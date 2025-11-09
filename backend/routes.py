@@ -6,7 +6,7 @@ import json
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from schemas import UserQueryRequest, UserQueryResponse
-from agent import create_agent_graph
+from chat_query import create_agent_graph
 from load import Storage
 
 load_dotenv()
