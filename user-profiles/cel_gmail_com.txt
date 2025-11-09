@@ -1,9 +1,0 @@
-User Profile Data
-==================
-
-First Name: ro
-Last Name: si
-Topics: Housing & Development, Education Funding & Property Tax, Civic & Electoral Reform, Housing & Development, Civic & Electoral Reform, Education Funding & Property Tax
-Reading Level: 2
-Locations: montpelier, vermont
-Created At: 2025-11-09T07:45:47.276Z

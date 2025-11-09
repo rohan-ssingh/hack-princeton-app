@@ -52,11 +52,31 @@ export async function getUser(email: string): Promise<User[]> {
   }
 }
 
-export async function createUser(email: string, password: string) {
+type CreateUserInput = {
+  email: string;
+  password: string;
+  locations?: string | null;
+  topics?: string[];
+  depth?: number | null;
+};
+
+export async function createUser({
+  email,
+  password,
+  locations,
+  topics,
+  depth,
+}: CreateUserInput) {
   const hashedPassword = generateHashedPassword(password);
 
   try {
-    return await db.insert(user).values({ email, password: hashedPassword });
+    return await db.insert(user).values({
+      email,
+      password: hashedPassword,
+      locations: locations ?? null,
+      topics: topics ?? [],
+      depth: depth ?? null,
+    });
   } catch (_error) {
     throw new ChatSDKError("bad_request:database", "Failed to create user");
   }

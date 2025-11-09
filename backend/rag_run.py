@@ -20,8 +20,7 @@ from load import Storage
 # ----------------------------
 # Config & constants
 # ----------------------------
-ABSOLUTE_DEFAULT = "/Users/ankitwalishetti/Desktop/Ankit Programming/hack-princeton/backend/faiss_index"
-FAISS_PATH = os.getenv("FAISS_INDEX_PATH") or ABSOLUTE_DEFAULT
+FAISS_PATH = "faiss_index"
 
 # # Try multiple keys for titles/urls/dates to be robust across corpora
 META_TITLE_KEYS = ["title", "doc_title", "filename", "name", "heading", "document_title"]
