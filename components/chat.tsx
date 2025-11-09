@@ -38,6 +38,20 @@ type Story = {
   timestamp: string;
 };
 
+const normalizeCategory = (value: string) => value.trim().toLowerCase();
+
+const DEFAULT_FEED_CATEGORIES: string[] = [
+  "Housing & Development",
+  "Education Funding & Property Tax",
+  "Taxes & Economic Policy",
+  "Environment & Climate",
+  "Workforce & Labor",
+  "Healthcare & Mental Health",
+  "Public Safety & Justice",
+  "Infrastructure & Energy",
+  "Civic & Electoral Reform",
+];
+
 type ChatProps = {
   id: string;
   initialMessages: ChatMessage[];
@@ -46,6 +60,9 @@ type ChatProps = {
   isReadonly: boolean;
   autoResume: boolean;
   initialLastContext?: AppUsage;
+  initialUserTopics?: string[];
+  initialUserLocations?: string | null;
+  initialUserDepth?: number | null;
 };
 
 type MessagePart = ChatMessage["parts"][number];
@@ -149,6 +166,9 @@ export function Chat({
   isReadonly,
   autoResume: _autoResume,
   initialLastContext: _initialLastContext,
+  initialUserTopics = [],
+  initialUserLocations: _initialUserLocations,
+  initialUserDepth: _initialUserDepth,
 }: ChatProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -233,9 +253,21 @@ export function Chat({
 
   const backendEndpoint = useMemo(() => normalizeBackendEndpoint(), []);
 
+  const userTopics = useMemo(() => {
+    const topicsSource =
+      session?.user?.topics && session.user.topics.length > 0
+        ? session.user.topics
+        : initialUserTopics;
+
+    return (topicsSource ?? [])
+      .map((topic) => topic.trim())
+      .filter((topic) => topic.length > 0);
+  }, [initialUserTopics, session?.user?.topics]);
+
   const categories = useMemo(
-    () => ["All", "Economy", "Healthcare", "Environment", "Education", "Justice"],
-    []
+    () =>
+      userTopics.length > 0 ? userTopics : DEFAULT_FEED_CATEGORIES,
+    [userTopics]
   );
 
   const stories = useMemo<Story[]>(
@@ -245,7 +277,7 @@ export function Chat({
         title: "Infrastructure Bill Vote Analysis",
         representative: "Sen. Jane Smith",
         alignment: 87,
-        category: "Economy",
+        category: "Infrastructure & Energy",
         summary:
           "Voted in favor of infrastructure spending, consistent with campaign promises on job creation.",
         timestamp: "2 hours ago",
@@ -255,7 +287,7 @@ export function Chat({
         title: "Healthcare Reform Statement",
         representative: "Rep. John Doe",
         alignment: 65,
-        category: "Healthcare",
+        category: "Healthcare & Mental Health",
         summary:
           "Public statements support expansion, but recent committee votes show mixed record.",
         timestamp: "5 hours ago",
@@ -265,7 +297,7 @@ export function Chat({
         title: "Climate Policy Update",
         representative: "Sen. Maria Garcia",
         alignment: 92,
-        category: "Environment",
+        category: "Environment & Climate",
         summary:
           "Strong alignment between campaign promises and legislative actions on renewable energy.",
         timestamp: "1 day ago",
@@ -275,7 +307,7 @@ export function Chat({
         title: "Education Funding Vote",
         representative: "Rep. Michael Chen",
         alignment: 45,
-        category: "Education",
+        category: "Education Funding & Property Tax",
         summary:
           "Voted against increased education funding, citing budget concerns despite campaign commitments.",
         timestamp: "2 days ago",
@@ -283,6 +315,20 @@ export function Chat({
     ],
     []
   );
+
+  const filteredStories = useMemo(() => {
+    if (userTopics.length === 0) {
+      return stories;
+    }
+
+    const normalizedTopics = new Set(
+      userTopics.map((topic) => normalizeCategory(topic))
+    );
+
+    return stories.filter((story) =>
+      normalizedTopics.has(normalizeCategory(story.category))
+    );
+  }, [stories, userTopics]);
 
   const firstName = useMemo(() => {
     if (session?.user?.name) {
@@ -577,12 +623,7 @@ export function Chat({
                 <button
                   key={category}
                   type="button"
-                  className={cn(
-                    "whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-all",
-                    category === "All"
-                      ? "bg-white text-black shadow-lg"
-                      : "border border-gray-700/50 bg-gray-800/50 text-gray-300 hover:bg-gray-700/50"
-                  )}
+                  className="whitespace-nowrap rounded-xl border border-gray-700/50 bg-gray-800/50 px-4 py-2 text-sm font-semibold text-gray-300 transition-all hover:bg-gray-700/50"
                 >
                   {category}
                 </button>
@@ -590,82 +631,91 @@ export function Chat({
             </div>
 
             <div className="space-y-4">
-              {stories.map((story, idx) => (
-                <article
-                  key={story.id}
-                  className="cursor-pointer rounded-2xl border border-gray-800 bg-gray-900/70 p-5 shadow-lg transition-all hover:border-gray-600 hover:shadow-xl"
-                  style={{ animationDelay: `${idx * 100}ms` }}
-                >
-                  <div className="mb-3 flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-700 shadow-lg">
-                        <User className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-white">
-                          {story.representative}
-                        </h3>
-                        <div className="flex items-center space-x-1.5 text-xs text-gray-400">
-                          <Clock className="h-3 w-3" />
-                          <span>{story.timestamp}</span>
+              {filteredStories.length === 0 ? (
+                <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-6 text-sm text-gray-300">
+                  No stories available for your selected topics yet. Try updating
+                  your interests or start a new conversation to surface more insights.
+                </div>
+              ) : (
+                filteredStories.map((story, idx) => (
+                  <article
+                    key={story.id}
+                    className="cursor-pointer rounded-2xl border border-gray-800 bg-gray-900/70 p-5 shadow-lg transition-all hover:border-gray-600 hover:shadow-xl"
+                    style={{ animationDelay: `${idx * 100}ms` }}
+                  >
+                    <div className="mb-3 flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-700 shadow-lg">
+                          <User className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-white">
+                            {story.representative}
+                          </h3>
+                          <div className="flex items-center space-x-1.5 text-xs text-gray-400">
+                            <Clock className="h-3 w-3" />
+                            <span>{story.timestamp}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <span className="rounded-full border border-gray-600/50 bg-gray-700/50 px-3 py-1.5 text-xs font-semibold text-gray-300">
-                      {story.category}
-                    </span>
-                  </div>
-
-                  <h4 className="mb-2 text-lg font-bold text-white">
-                    {story.title}
-                  </h4>
-                  <p className="mb-4 text-sm leading-relaxed text-gray-300">
-                    {story.summary}
-                  </p>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-xs font-medium text-gray-400">
-                        Alignment:
+                      <span className="rounded-full border border-gray-600/50 bg-gray-700/50 px-3 py-1.5 text-xs font-semibold text-gray-300">
+                        {story.category}
                       </span>
-                      <div className="flex items-center space-x-2">
-                        <div className="h-2 w-28 overflow-hidden rounded-full bg-gray-800/50">
-                          <div
-                            className={cn(
-                              "h-full rounded-full transition-all",
-                              story.alignment >= 80
-                                ? "bg-gray-200"
-                                : story.alignment >= 60
-                                ? "bg-gray-500"
-                                : "bg-gray-700"
-                            )}
-                            style={{ width: `${story.alignment}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-bold text-white">
-                          {story.alignment}%
-                        </span>
-                      </div>
                     </div>
-                    <button
-                      type="button"
-                      className="text-sm font-semibold text-gray-400 transition-colors hover:text-gray-200"
-                    >
-                      View Details →
-                    </button>
-                  </div>
-                </article>
-              ))}
+
+                    <h4 className="mb-2 text-lg font-bold text-white">
+                      {story.title}
+                    </h4>
+                    <p className="mb-4 text-sm leading-relaxed text-gray-300">
+                      {story.summary}
+                    </p>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-xs font-medium text-gray-400">
+                          Alignment:
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <div className="h-2 w-28 overflow-hidden rounded-full bg-gray-800/50">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all",
+                                story.alignment >= 80
+                                  ? "bg-gray-200"
+                                  : story.alignment >= 60
+                                  ? "bg-gray-500"
+                                  : "bg-gray-700"
+                              )}
+                              style={{ width: `${story.alignment}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-bold text-white">
+                            {story.alignment}%
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="text-sm font-semibold text-gray-400 transition-colors hover:text-gray-200"
+                      >
+                        View Details →
+                      </button>
+                    </div>
+                  </article>
+                ))
+              )}
             </div>
 
-            <div className="mt-8 text-center">
-              <button
-                type="button"
-                className="rounded-xl border border-gray-700/50 bg-gray-800/50 px-6 py-3 text-sm font-semibold text-gray-300 transition-all hover:bg-gray-700/50"
-              >
-                Load More Stories
-              </button>
-            </div>
+            {filteredStories.length > 0 && (
+              <div className="mt-8 text-center">
+                <button
+                  type="button"
+                  className="rounded-xl border border-gray-700/50 bg-gray-800/50 px-6 py-3 text-sm font-semibold text-gray-300 transition-all hover:bg-gray-700/50"
+                >
+                  Load More Stories
+                </button>
+              </div>
+            )}
           </div>
         </main>
       </div>

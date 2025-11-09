@@ -99,19 +99,8 @@ export default function Page() {
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get("email") as string);
 
-    // Add selected topics to form data
-    selectedTopics.forEach((topic: string) => {
-      formData.append("topics", topic);
-    });
-
-    // Add other topics if selected
     if (selectedTopics.includes("other") && otherTopics) {
       formData.append("otherTopics", otherTopics);
-    }
-
-    // Add reading level if selected
-    if (selectedReadingLevel) {
-      formData.append("readingLevel", selectedReadingLevel);
     }
 
     formAction(formData);

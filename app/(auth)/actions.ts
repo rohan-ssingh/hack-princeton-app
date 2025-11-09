@@ -78,9 +78,13 @@ export const register = async (
     const combinedTopics = isOtherSelected && otherTopics
       ? [...selectedTopics.filter((t) => t !== "other"), otherTopics.trim()]
       : selectedTopics;
-    const normalizedTopics = combinedTopics
-      .map((topic) => topic.trim())
-      .filter((topic) => topic.length > 0);
+    const normalizedTopics = Array.from(
+      new Set(
+        combinedTopics
+          .map((topic) => topic.trim())
+          .filter((topic) => topic.length > 0)
+      )
+    );
     const normalizedLocations = locations?.trim() ?? null;
     const depth = readingLevel ? Number.parseInt(readingLevel, 10) : null;
 

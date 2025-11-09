@@ -13,6 +13,9 @@ declare module "next-auth" {
     user: {
       id: string;
       type: UserType;
+      topics?: string[];
+      locations?: string | null;
+      depth?: number | null;
     } & DefaultSession["user"];
   }
 
@@ -21,6 +24,9 @@ declare module "next-auth" {
     id?: string;
     email?: string | null;
     type: UserType;
+    topics?: string[] | null;
+    locations?: string | null;
+    depth?: number | null;
   }
 }
 
@@ -28,6 +34,9 @@ declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     id: string;
     type: UserType;
+    topics?: string[];
+    locations?: string | null;
+    depth?: number | null;
   }
 }
 
@@ -71,6 +80,9 @@ export const {
       if (user) {
         token.id = user.id as string;
         token.type = user.type ?? "regular";
+        token.topics = (user.topics ?? []) as string[];
+        token.locations = user.locations ?? null;
+        token.depth = user.depth ?? null;
       } else if (!token.type) {
         token.type = "regular";
       }
@@ -81,6 +93,9 @@ export const {
       if (session.user) {
         session.user.id = token.id;
         session.user.type = (token.type as UserType) ?? "regular";
+        session.user.topics = (token.topics as string[] | undefined) ?? [];
+        session.user.locations = (token.locations as string | undefined) ?? null;
+        session.user.depth = (token.depth as number | undefined) ?? null;
       }
 
       return session;
