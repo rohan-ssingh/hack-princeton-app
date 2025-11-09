@@ -75,6 +75,70 @@ const getCitationLabel = (url: string) => {
   }
 };
 
+type ConversationMessagePayload = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
+const getTextFromChatMessage = (message: ChatMessage): string => {
+  return message.parts
+    .filter(isTextPart)
+    .map((part) => part.text.trim())
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+};
+
+const buildConversationPayload = (messages: ChatMessage[]): ConversationMessagePayload[] => {
+  return messages
+    .map((message) => {
+      const content = getTextFromChatMessage(message);
+      if (!content) {
+        return null;
+      }
+
+      const normalizedRole:
+        | ConversationMessagePayload["role"]
+        = message.role === "assistant"
+          ? "assistant"
+          : message.role === "system"
+          ? "system"
+          : "user";
+
+      return {
+        role: normalizedRole,
+        content,
+      };
+    })
+    .filter(Boolean) as ConversationMessagePayload[];
+};
+
+const extractUrlFromMetadata = (metadata: Record<string, any> | undefined): string | null => {
+  if (!metadata || typeof metadata !== "object") {
+    return null;
+  }
+
+  const candidateChecks: Array<[unknown, (value: string) => boolean]> = [
+    [metadata.url, () => true],
+    [metadata.source_url, () => true],
+    [metadata.sourceUrl, () => true],
+    [metadata.source, () => true],
+    [metadata.file_name, (value: string) => /^https?:\/\//i.test(value)],
+    [metadata.fileName, (value: string) => /^https?:\/\//i.test(value)],
+  ];
+
+  for (const [candidate, validator] of candidateChecks) {
+    if (typeof candidate === "string") {
+      const trimmed = candidate.trim();
+      if (trimmed && validator(trimmed)) {
+        return trimmed;
+      }
+    }
+  }
+
+  return null;
+};
+
 export function Chat({
   id,
   initialMessages,
@@ -192,6 +256,8 @@ export function Chat({
         return;
       }
 
+      const conversationPayload = buildConversationPayload(messages);
+
       const userMessage: ChatMessage = {
         id: generateUUID(),
         role: "user",
@@ -208,7 +274,10 @@ export function Chat({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ user_query: trimmed }),
+          body: JSON.stringify({
+            user_query: trimmed,
+            conversation: conversationPayload,
+          }),
         });
 
         if (!response.ok) {
@@ -227,32 +296,27 @@ export function Chat({
 
         const citationParts = documents
           .map((doc: unknown) => {
-            if (
-              doc &&
-              typeof doc === "object" &&
-              "metadata" in doc &&
-              (doc as { metadata?: Record<string, unknown> }).metadata
-            ) {
-              const metadata = (doc as { metadata?: Record<string, unknown> })
-                .metadata;
-              const urlValue =
-                (metadata?.url as string | undefined) ??
-                (metadata?.source as string | undefined);
-              return typeof urlValue === "string" ? urlValue : null;
+            if (!doc || typeof doc !== "object") {
+              return null;
             }
-            return null;
+
+            const metadata = (doc as { metadata?: Record<string, any> }).metadata;
+            const url = extractUrlFromMetadata(metadata);
+
+            if (!url) {
+              return null;
+            }
+
+            return { type: "citation" as const, text: url };
           })
-          .filter((value): value is string => Boolean(value));
+          .filter((value): value is { type: "citation"; text: string } => Boolean(value));
 
         const assistantMessage: ChatMessage = {
           id: generateUUID(),
           role: "assistant",
           parts: [
             { type: "text", text: textResponse },
-            ...citationParts.map((url) => ({
-              type: "citation" as const,
-              text: url,
-            })),
+            ...citationParts,
           ],
           metadata: { createdAt: new Date().toISOString() },
         };
@@ -269,7 +333,7 @@ export function Chat({
         setStatus("idle");
       }
     },
-    [backendEndpoint]
+    [backendEndpoint, messages]
   );
 
   const query = searchParams.get("query");
