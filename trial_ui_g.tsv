@@ -1,56 +1,278 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+// --- Use package imports for local development ---
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  signInAnonymously, 
+  signInWithCustomToken,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  collection, 
+  onSnapshot,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  deleteDoc
+} from 'firebase/firestore';
 
-// --- SVG Icons (replaces lucide-react) ---
-
+// --- SVG Icons ---
 const SendSVG = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
   </svg>
 );
-
 const UserSVG = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
   </svg>
 );
-
 const FileTextSVG = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
   </svg>
 );
-
 const ClockSVG = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
   </svg>
 );
-
 const ChevronLeftSVG = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <polyline points="15 18 9 12 15 6" />
   </svg>
 );
-
 const ChevronRightSVG = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <polyline points="9 18 15 12 9 6" />
   </svg>
 );
-
 const SparklesSVG = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M12 3a6 6 0 0 0-6 6 6 6 0 0 0 6 6 6 6 0 0 0 6-6 6 6 0 0 0-6-6z" /><path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" /><path d="M19 3l-3 3" /><path d="M5 17l3-3" /><path d="M3 19l3-3" /><path d="M17 5l-3 3" />
+    <path d="m12 3-1.9 1.9-1.9-1.9-1.9 1.9-1.9-1.9L3 3l1.9 1.9L3 6.8l1.9 1.9L3 10.6l1.9 1.9L3 14.4l1.9 1.9L3 18.2l1.9 1.9L3 22l1.9-1.9L6.8 22l1.9-1.9L10.6 22l1.9-1.9L14.4 22l1.9-1.9L18.2 22l1.9-1.9L22 22l-1.9-1.9L22 18.2l-1.9-1.9L22 14.4l-1.9-1.9L22 10.6l-1.9-1.9L22 6.8l-1.9-1.9L22 3l-1.9 1.9L18.2 3l-1.9 1.9L14.4 3l-1.9 1.9L10.6 3l-1.9 1.9L6.8 3l-1.9 1.9L3 3z"/>
+  </svg>
+);
+const BookmarkSVG = ({ className, filled = false }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+  </svg>
+);
+const LogOutSVG = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+const GoogleSVG = ({ className }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48px" height="48px">
+    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C39.901,36.627,44,30.637,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+  </svg>
+);
+const LogInSVG = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><polyline points="10 17 15 12 10 7" /><line x1="15" y1="12" x2="3" y2="12" />
   </svg>
 );
 
-// --- Main App Component ---
 
+// --- Firebase Config & App ID ---
+// These are globally provided in your environment
+const rawAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const appId = rawAppId.split('/')[0]; // Sanitize the appId to remove any sub-paths
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+const isInPreviewEnvironment = !!initialAuthToken; // Check if we're in the token-based environment
+
+// --- Main App Component ---
 export default function App() {
+  // --- State ---
+  const [user, setUser] = useState(null);
+  const [auth, setAuth] = useState(null);
+  const [db, setDb] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  
   const [chatMessages, setChatMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isChatExpanded, setIsChatExpanded] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [savedStories, setSavedStories] = useState([]); // Stores { id, storyId, title }
+  const profileMenuRef = useRef(null);
+
+  // --- Mock Data ---
+  const mockStories = [
+    {
+      id: "story_1",
+      title: "Infrastructure Bill Vote Analysis",
+      representative: "Sen. Jane Smith",
+      alignment: 87,
+      category: "Economy",
+      summary: "Voted in favor of infrastructure spending, consistent with campaign promises on job creation.",
+      timestamp: "2 hours ago"
+    },
+    {
+      id: "story_2",
+      title: "Healthcare Reform Statement",
+      representative: "Rep. John Doe",
+      alignment: 65,
+      category: "Healthcare",
+      summary: "Public statements support expansion, but recent committee votes show mixed record.",
+      timestamp: "5 hours ago"
+    },
+    {
+      id: "story_3",
+      title: "Climate Policy Update",
+      representative: "Sen. Maria Garcia",
+      alignment: 92,
+      category: "Environment",
+      summary: "Strong alignment between campaign promises and legislative actions on renewable energy.",
+      timestamp: "1 day ago"
+    },
+    {
+      id: "story_4",
+      title: "Education Funding Vote",
+      representative: "Rep. Michael Chen",
+      alignment: 78,
+      category: "Education",
+      summary: "Supported increased education funding, aligning with campaign trail commitments.",
+      timestamp: "2 days ago"
+    }
+  ];
+
+  // --- Firebase Initialization & Auth Effect ---
+  useEffect(() => {
+    // Check if firebaseConfig is populated
+    if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) {
+      console.warn("Firebase config is missing or empty.");
+      // We can't initialize Firebase, so we'll just show the app in a logged-out state.
+      setIsAuthReady(true); 
+      return;
+    }
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const authInstance = getAuth(app);
+      const dbInstance = getFirestore(app);
+      setAuth(authInstance);
+      setDb(dbInstance);
+
+      const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
+        if (user) {
+          // User is signed in.
+          const userProfile = {
+            uid: user.uid,
+            name: user.displayName || 'Anonymous User',
+            email: user.email,
+            photoURL: user.photoURL
+          };
+          setUser(userProfile);
+          
+          // Create or update user profile in Firestore
+          const userDocRef = doc(dbInstance, `/artifacts/${appId}/users/${user.uid}/profile/main`);
+          await setDoc(userDocRef, { 
+            name: userProfile.name, 
+            email: userProfile.email 
+          }, { merge: true });
+
+        } else {
+          // User is signed out.
+          setUser(null);
+        }
+        setIsAuthReady(true); // Auth check is complete
+      });
+
+      // Sign in with token if available
+      if (initialAuthToken) {
+        signInWithCustomToken(authInstance, initialAuthToken).catch((error) => {
+          console.error("Custom token sign-in error:", error);
+          // Don't sign in anonymously, just show login screen
+          setIsAuthReady(true);
+        });
+      } else {
+        // No token, show the login screen.
+        setIsAuthReady(true);
+      }
+
+      return () => unsubscribe(); // Cleanup listener on component unmount
+    } catch (error) {
+      console.error("Firebase Init Error:", error);
+      setIsAuthReady(true); // Still ready, even if Firebase fails
+    }
+  }, []);
+
+  // --- Firestore Data (Saved Stories) Effect ---
+  useEffect(() => {
+    if (!user || !db) {
+      setSavedStories([]); // Clear saved stories if user logs out
+      return;
+    }
+
+    // Path to the user's private "savedStories" collection
+    const savedStoriesColRef = collection(db, `/artifacts/${appId}/users/${user.uid}/savedStories`);
+    
+    // Listen for real-time updates
+    const unsubscribe = onSnapshot(savedStoriesColRef, (snapshot) => {
+      const stories = snapshot.docs.map(doc => ({
+        id: doc.id, // This is the Firestore document ID
+        ...doc.data() // This contains { storyId, title }
+      }));
+      setSavedStories(stories);
+    }, (error) => {
+      console.error("Error listening to saved stories: ", error);
+    });
+
+    return () => unsubscribe(); // Cleanup listener
+  }, [user, db]); // Rerun this effect if the user or db instance changes
+
+
+  // --- Click Outside Hook for Profile Menu ---
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileMenuRef]);
+
+
+  // --- Event Handlers ---
+
+  const handleGoogleSignIn = () => {
+    if (!auth) {
+        console.error("Auth is not initialized. Cannot sign in.");
+        return;
+    }
+    
+    // This environment check is redundant now because the button won't be shown,
+    // but it's good practice to keep it.
+    if (isInPreviewEnvironment) {
+        console.warn("Google Sign-In is not available in this preview.");
+        return;
+    }
+
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider).catch((error) => {
+      console.error("Google Sign-In Error:", error);
+    });
+  };
+
+  const handleSignOut = () => {
+    if (auth) {
+      signOut(auth);
+      setShowProfileMenu(false);
+    }
+  };
 
   const handleSendMessage = () => {
     if (inputMessage.trim()) {
@@ -61,230 +283,316 @@ export default function App() {
       setTimeout(() => {
         setChatMessages(prev => [...prev, { 
           type: 'assistant', 
-          text: 'I can help you understand political transparency. What would you like to know?' 
+          text: `Hi ${user?.name.split(' ')[0] || 'there'}! I'm Relay. How can I help you understand this data?`
         }]);
       }, 1000);
     }
   };
-
-  const suggestedQuestions = [
-    "What bills has my representative voted on?",
-    "Show me campaign promises vs actions",
-    "How can I contact my representative?",
-    "What are the latest updates?"
-  ];
-
-  const mockStories = [
-    {
-      id: 1,
-      title: "Infrastructure Bill Vote Analysis",
-      representative: "Sen. Jane Smith",
-      alignment: 87,
-      category: "Economy",
-      summary: "Voted in favor of infrastructure spending, consistent with campaign promises on job creation.",
-      timestamp: "2 hours ago"
-    },
-    {
-      id: 2,
-      title: "Healthcare Reform Statement",
-      representative: "Rep. John Doe",
-      alignment: 65,
-      category: "Healthcare",
-      summary: "Public statements support expansion, but recent committee votes show mixed record.",
-      timestamp: "5 hours ago"
-    },
-    {
-      id: 3,
-      title: "Climate Policy Update",
-      representative: "Sen. Maria Garcia",
-      alignment: 92,
-      category: "Environment",
-      summary: "Strong alignment between campaign promises and legislative actions on renewable energy.",
-      timestamp: "1 day ago"
-    },
-    {
-      id: 4,
-      title: "Education Funding Vote",
-      representative: "Rep. Michael Chen",
-      alignment: 78,
-      category: "Education",
-      summary: "Supported increased education funding, aligning with campaign trail commitments.",
-      timestamp: "2 days ago"
+  
+  const handleSaveStory = async (story) => {
+    if (!user || !db) {
+        console.warn("User or DB not ready. Cannot save story.");
+        return; // Must be logged in
     }
+
+    const savedStory = savedStories.find(s => s.storyId === story.id);
+    const savedStoriesColRef = collection(db, `/artifacts/${appId}/users/${user.uid}/savedStories`);
+
+    if (savedStory) {
+      // It's already saved, so unsave it (delete the doc)
+      const docToDeleteRef = doc(db, `/artifacts/${appId}/users/${user.uid}/savedStories/${savedStory.id}`);
+      try {
+        await deleteDoc(docToDeleteRef);
+      } catch (error) {
+        console.error("Error removing document: ", error);
+      }
+    } else {
+      // It's not saved, so save it (add a new doc)
+      try {
+        await addDoc(savedStoriesColRef, {
+          storyId: story.id,
+          title: story.title,
+          timestamp: new Date()
+        });
+      } catch (error) {
+        console.error("Error adding document: ", error);
+      }
+    }
+  };
+
+  // --- Render Logic ---
+
+  const filteredStories = mockStories.filter(story => {
+    if (activeCategory === 'All') return true;
+    if (activeCategory === 'Saved') {
+      return savedStories.some(s => s.storyId === story.id);
+    }
+    return story.category === activeCategory;
+  });
+  
+  const suggestedQuestions = [
+    "What bills did they vote on?",
+    "Compare promises vs actions",
+    "How do I contact them?",
+    "Show recent updates"
   ];
 
-  const filteredStories = mockStories.filter(story => 
-    activeCategory === 'All' || story.category === activeCategory
-  );
+  // Loading Screen
+  if (!isAuthReady) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black">
+        <SparklesSVG className="w-12 h-12 text-white animate-spin" />
+      </div>
+    );
+  }
 
+  // Login Screen
+  if (!user) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-black text-white p-8">
+        <div className="text-center">
+          <FileTextSVG className="w-16 h-16 text-white mx-auto mb-6" />
+          <h1 className="text-4xl font-bold mb-3">Political Transparency</h1>
+          <p className="text-lg text-neutral-400 mb-12">Track what they say vs. what they do.</p>
+          
+          {/* Change login button based on environment */}
+          {isInPreviewEnvironment ? (
+            <div className="flex flex-col items-center">
+              <p className="text-lg text-neutral-300 mb-4">You have been signed out.</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="flex items-center justify-center space-x-3 bg-white text-black font-semibold px-6 py-3 rounded-lg hover:bg-neutral-200 transition-colors"
+              >
+                <span>Refresh Page to Sign In</span>
+              </button>
+              <p className="text-xs text-neutral-500 mt-4">(This preview environment requires refreshing to re-authenticate)</p>
+            </div>
+          ) : (
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={!auth} // Disable button if auth failed to init
+              className="flex items-center justify-center space-x-3 bg-white text-black font-semibold px-6 py-3 rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50"
+            >
+              <GoogleSVG className="w-6 h-6" />
+              <span>Sign in with Google</span>
+            </button>
+          )}
+
+          {!auth && (
+             <p className="text-red-500 text-xs mt-4">Could not connect to authentication service.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Main App UI ---
   return (
-    <div className="flex h-screen bg-black text-gray-200 overflow-hidden">
+    <div className="flex h-screen bg-black text-neutral-200 overflow-hidden">
       
+      {/* User Profile Button & Menu */}
+      <div ref={profileMenuRef} className="fixed bottom-4 left-4 z-50">
+         {showProfileMenu && (
+          <div className="absolute bottom-full mb-2 w-60 bg-neutral-900 rounded-lg shadow-lg overflow-hidden border border-neutral-700">
+            <div className="p-4 border-b border-neutral-700">
+              <p className="text-sm font-medium text-white truncate">{user.name}</p>
+              <p className="text-xs text-neutral-400 truncate">{user.email}</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center space-x-3 px-4 py-3 text-left text-neutral-300 hover:bg-neutral-800 transition-colors"
+            >
+              <LogOutSVG className="w-5 h-5" />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        )}
+        <button
+          onClick={() => setShowProfileMenu(!showProfileMenu)}
+          className="flex items-center space-x-3 bg-neutral-900/80 backdrop-blur-xl px-3 py-2 rounded-full border border-neutral-700/60 shadow-lg hover:border-neutral-600 transition-all"
+        >
+          {user.photoURL ? (
+            <img src={user.photoURL} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
+          ) : (
+            <div className="w-8 h-8 bg-neutral-700 rounded-full flex items-center justify-center font-bold text-sm text-white">
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span className="text-sm font-medium text-white hidden sm:block">{user.name}</span>
+        </button>
+      </div>
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-gray-950 border-b border-gray-800 px-6 py-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
+        <header className="bg-black/80 backdrop-blur-sm border-b border-neutral-800 px-6 py-3.5 flex-shrink-0 shadow-lg z-10">
+          <div className="flex items-center justify-center space-x-3">
+            <div className="w-9 h-9 bg-neutral-800 rounded-xl flex items-center justify-center border border-neutral-700">
               <FileTextSVG className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Political Transparency</h1>
-              <p className="text-xs text-gray-400">Track what they say vs. what they do</p>
+              <h1 className="text-xl font-bold text-white">
+                Political Transparency
+              </h1>
+              <p className="text-xs text-neutral-400">Track what they say vs. what they do</p>
             </div>
           </div>
         </header>
-
+        
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto px-6 py-6 bg-black">
+        <main className="flex-1 overflow-y-auto px-6 py-6 bg-gradient-to-br from-black via-neutral-950/20 to-black">
           <div className="max-w-4xl mx-auto">
             {/* Welcome Section */}
             <div className="mb-8">
-              <div className="flex items-center space-x-2 mb-3">
-                <SparklesSVG className="w-6 h-6 text-gray-400" />
-                <h2 className="text-3xl font-bold text-gray-100">
-                  Hey there!
+              <div className="flex items-center space-x-3 mb-3">
+                <SparklesSVG className="w-7 h-7 text-neutral-400" />
+                <h2 className="text-4xl font-bold text-neutral-100">
+                  Hey, {user.name.split(' ')[0] || 'there'}!
                 </h2>
               </div>
-              <p className="text-lg text-gray-300">
+              <p className="text-lg text-neutral-400 ml-10">
                 Here are some interesting stories for you today
               </p>
             </div>
-
+            
             {/* Filter Tabs */}
             <div className="flex space-x-2 mb-6 overflow-x-auto pb-2">
-              {['All', 'Economy', 'Healthcare', 'Environment', 'Education', 'Justice'].map((category) => (
+              {['All', 'Saved', 'Economy', 'Healthcare', 'Environment', 'Education', 'Justice'].map((category) => (
                 <button
                   key={category}
                   onClick={() => setActiveCategory(category)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
                     activeCategory === category 
-                      ? 'bg-gray-200 text-black font-semibold' 
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700'
+                      ? 'bg-white text-black shadow-lg' 
+                      : 'bg-neutral-900 text-neutral-300 hover:bg-neutral-800 border border-neutral-700'
                   }`}
                 >
                   {category}
                 </button>
               ))}
             </div>
-
+            
             {/* News Feed */}
             <div className="space-y-4">
-              {filteredStories.map((story) => (
-                <div
-                  key={story.id}
-                  className="bg-gray-900 rounded-xl border border-gray-800 p-5 hover:border-gray-600 transition-all"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
-                        <UserSVG className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-white text-sm">{story.representative}</h3>
-                        <div className="flex items-center space-x-1.5 text-xs text-gray-400">
-                          <ClockSVG className="w-3 h-3" />
-                          <span>{story.timestamp}</span>
+              {filteredStories.map((story, idx) => {
+                const isSaved = savedStories.some(s => s.storyId === story.id);
+                return (
+                  <div
+                    key={story.id}
+                    className="bg-neutral-900/70 backdrop-blur-md rounded-2xl border border-neutral-800 p-5 hover:border-neutral-700 hover:shadow-xl hover:shadow-black/20 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-11 h-11 bg-neutral-800 rounded-full flex items-center justify-center shadow-lg border border-neutral-700">
+                          <UserSVG className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-white">{story.representative}</h3>
+                          <div className="flex items-center space-x-1.5 text-xs text-neutral-400">
+                            <ClockSVG className="w-3 h-3" />
+                            <span>{story.timestamp}</span>
+                          </div>
                         </div>
                       </div>
+                      <span className="px-3 py-1.5 bg-neutral-800 text-neutral-300 rounded-full text-xs font-semibold border border-neutral-700">
+                        {story.category}
+                      </span>
                     </div>
-                    <span className="px-3 py-1 bg-gray-700/50 text-gray-300 rounded-full text-xs font-medium border border-gray-700">
-                      {story.category}
-                    </span>
-                  </div>
-
-                  <h4 className="text-lg font-bold text-white mb-2">{story.title}</h4>
-                  <p className="text-sm text-gray-300 mb-4 leading-relaxed">{story.summary}</p>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-medium text-gray-400">Alignment:</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-24 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full ${
-                              story.alignment >= 80 ? 'bg-green-500' :
-                              story.alignment >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                            }`}
-                            style={{ width: `${story.alignment}%` }}
-                          />
+                    
+                    <h4 className="text-lg font-bold text-white mb-2">{story.title}</h4>
+                    <p className="text-sm text-neutral-300 mb-4 leading-relaxed">{story.summary}</p>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-xs font-medium text-neutral-400">Alignment:</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-28 h-2 bg-neutral-700/50 rounded-full overflow-hidden backdrop-blur-sm">
+                            <div 
+                              className={`h-full rounded-full transition-all ${
+                                story.alignment >= 80 ? 'bg-gradient-to-r from-green-500 to-emerald-400' :
+                                story.alignment >= 60 ? 'bg-gradient-to-r from-yellow-500 to-orange-400' : 
+                                'bg-gradient-to-r from-red-500 to-pink-500'
+                              }`}
+                              style={{ width: `${story.alignment}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-bold text-white">{story.alignment}%</span>
                         </div>
-                        <span className="text-xs font-bold text-white">{story.alignment}%</span>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                         <button 
+                          onClick={() => handleSaveStory(story)}
+                          className={`text-neutral-500 hover:text-white transition-colors ${isSaved ? 'text-white' : ''}`}
+                          title={isSaved ? "Unsave story" : "Save story"}
+                        >
+                          <BookmarkSVG className="w-5 h-5" filled={isSaved} />
+                        </button>
+                        <button className="text-neutral-400 hover:text-white font-semibold text-sm transition-colors">
+                          View Details →
+                        </button>
                       </div>
                     </div>
-                    <button className="text-gray-400 hover:text-white font-medium text-xs">
-                      View Details →
-                    </button>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
-
+            
             {/* Load More */}
-            <div className="text-center mt-6">
-              <button className="px-5 py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-700 transition-all">
+            <div className="text-center mt-8">
+              <button className="px-6 py-3 bg-neutral-900 border border-neutral-700 text-neutral-300 rounded-xl font-semibold hover:bg-neutral-800 transition-all">
                 Load More Stories
               </button>
             </div>
           </div>
         </main>
       </div>
-
-      {/* Chat Sidebar */}
+      
+      {/* Chat Sidebar - Relay */}
       <div 
-        className={`relative bg-gray-950 border-l border-gray-800 flex flex-col transition-all duration-300 ease-in-out ${
-          isChatExpanded ? 'w-80' : 'w-12'
+        className={`bg-neutral-950/90 backdrop-blur-xl border-l border-neutral-800 flex flex-col transition-all duration-300 ease-in-out shadow-2xl ${
+          isChatExpanded ? 'w-80' : 'w-0'
         }`}
       >
-        {/* Toggle Button */}
-        <button
-          onClick={() => setIsChatExpanded(!isChatExpanded)}
-          className="absolute top-1/2 -translate-y-1/2 -left-4 z-10 bg-gray-700 hover:bg-gray-600 p-1.5 rounded-full text-white transition-colors"
-        >
-          {isChatExpanded ? <ChevronRightSVG className="w-5 h-5" /> : <ChevronLeftSVG className="w-5 h-5" />}
-        </button>
-
         {isChatExpanded && (
           <>
             {/* Chat Header */}
-            <div className="px-4 py-3 border-b border-gray-800 flex-shrink-0">
-              <h3 className="font-semibold text-white text-sm">Ask Questions</h3>
-              <p className="text-xs text-gray-400">Get insights on the data</p>
+            <div className="px-5 py-4 border-b border-neutral-800">
+              <div className="flex items-center space-x-2 mb-1">
+                <SparklesSVG className="w-5 h-5 text-blue-400" />
+                <h3 className="font-bold text-white">Relay</h3>
+              </div>
+              <p className="text-xs text-neutral-400">Your AI transparency assistant</p>
             </div>
-
+            
             {/* Suggested Questions */}
             {chatMessages.length === 0 && (
-              <div className="px-4 py-3 space-y-2 flex-shrink-0">
-                <p className="text-xs font-medium text-gray-500 mb-2">SUGGESTED</p>
+              <div className="px-5 py-4 space-y-2">
+                <p className="text-xs font-semibold text-neutral-500 mb-3">SUGGESTED QUESTIONS</p>
                 {suggestedQuestions.map((question, idx) => (
                   <button
                     key={idx}
-                    onClick={() => {
-                        setInputMessage(question);
-                        // Optionally send message immediately
-                        // setChatMessages([...chatMessages, { type: 'user', text: question }]);
-                        // getAiResponse(question);
-                    }}
-                    className="w-full text-left px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-xs text-gray-300 transition-all border border-gray-700"
+                    onClick={() => setInputMessage(question)}
+                    className="w-full text-left px-3 py-2.5 bg-neutral-800/60 hover:bg-neutral-700/80 rounded-xl text-xs text-neutral-200 transition-all border border-neutral-700 hover:border-neutral-600"
                   >
                     {question}
                   </button>
                 ))}
               </div>
             )}
-
+            
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
               {chatMessages.map((msg, idx) => (
                 <div
                   key={idx}
                   className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[85%] px-3 py-2 rounded-lg ${
+                    className={`max-w-[85%] px-3 py-2.5 rounded-xl ${
                       msg.type === 'user'
-                        ? 'bg-gray-200 text-gray-900'
-                        : 'bg-gray-800 text-gray-200 border border-gray-700'
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'bg-neutral-800 text-neutral-100 border border-neutral-700'
                     }`}
                   >
                     <p className="text-xs leading-relaxed">{msg.text}</p>
@@ -292,21 +600,21 @@ export default function App() {
                 </div>
               ))}
             </div>
-
+            
             {/* Chat Input */}
-            <div className="px-4 py-3 border-t border-gray-800 flex-shrink-0">
+            <div className="px-5 py-4 border-t border-neutral-800">
               <div className="flex space-x-2">
                 <input
                   type="text"
                   value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
+                  onChange={(e) => setInputMessage(e.f.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="Ask anything..."
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-1 focus:ring-gray-500 focus:border-gray-500 text-white placeholder-gray-500 text-xs"
+                  placeholder="Ask Relay anything..."
+                  className="flex-1 px-4 py-2.5 bg-neutral-800/60 border border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-neutral-500 text-sm"
                 />
                 <button
                   onClick={handleSendMessage}
-                  className="p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30"
                 >
                   <SendSVG className="w-4 h-4" />
                 </button>
@@ -314,14 +622,15 @@ export default function App() {
             </div>
           </>
         )}
-
-        {/* Collapsed State Icon */}
-        {!isChatExpanded && (
-          <div className="flex items-center justify-center py-4">
-            <SparklesSVG className="w-5 h-5 text-gray-400" />
-          </div>
-        )}
       </div>
+      
+      {/* Toggle Chat Button */}
+      <button
+        onClick={() => setIsChatExpanded(!isChatExpanded)}
+        className="fixed right-4 bottom-6 bg-blue-600 hover:bg-blue-700 p-4 rounded-full shadow-2xl shadow-blue-500/40 transition-all z-40 hover:scale-110"
+      >
+        {isChatExpanded ? <ChevronRightSVG className="w-5 h-5" /> : <SparklesSVG className="w-5 h-5" />}
+      </button>
     </div>
   );
 }

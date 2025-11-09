@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, User, FileText, Clock, ChevronLeft, ChevronRight, Sparkles, LogIn, LogOut, Menu } from 'lucide-react';
+import { Send, User, FileText, Clock, ChevronLeft, ChevronRight, Sparkles, LogIn, LogOut, Menu, Check } from 'lucide-react';
 
 export default function PoliticalTransparencyUI() {
   const [chatMessages, setChatMessages] = useState([]);
@@ -8,12 +8,41 @@ export default function PoliticalTransparencyUI() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [userData, setUserData] = useState(null);
+  
+  // Login/Signup state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [isSignup, setIsSignup] = useState(false);
+
+  // New Onboarding Form State
+  const [showOnboardingForm, setShowOnboardingForm] = useState(false);
+  const [onboardingFullName, setOnboardingFullName] = useState('');
+  const [onboardingTopics, setOnboardingTopics] = useState([]);
+  const [onboardingOtherTopic, setOnboardingOtherTopic] = useState('');
+  const [onboardingReadingLevel, setOnboardingReadingLevel] = useState('');
+  const [onboardingLocations, setOnboardingLocations] = useState('');
+
+  // Constants for onboarding form
+  const topicsOfInterest = [
+    "Housing & Development",
+    "Education Funding & Property Tax",
+    "Taxes & Economic Policy",
+    "Environment & Climate",
+    "Workforce & Labor",
+    "Healthcare & Mental Health",
+    "Public Safety & Justice",
+    "Infrastructure & Energy",
+    "Civic & Electoral Reform"
+  ];
+
+  const readingLevelOptions = [
+    { id: 'level1', title: 'Level 1: Clear & concise' },
+    { id: 'level2', title: 'Level 2: Detailed & technical' },
+    { id: 'level3', title: 'Level 3: Highly technical, analytical, or policy-style' }
+  ];
 
   // Load user data from storage on mount
   useEffect(() => {
@@ -86,7 +115,7 @@ export default function PoliticalTransparencyUI() {
         id: userId,
         name: signupName,
         email: signupEmail,
-        password: signupPassword,
+        password: signupPassword, // Note: Passwords should be hashed in a real app
         createdAt: new Date().toISOString()
       };
 
@@ -96,6 +125,12 @@ export default function PoliticalTransparencyUI() {
       setUserData(newUser);
       setIsLoggedIn(true);
       setShowLogin(false);
+      
+      // Set name for onboarding and show the form
+      setOnboardingFullName(signupName);
+      setShowOnboardingForm(true);
+
+      // Clear signup fields
       setSignupName('');
       setSignupEmail('');
       setSignupPassword('');
@@ -116,6 +151,77 @@ export default function PoliticalTransparencyUI() {
       console.error('Logout error:', error);
     }
   };
+
+  // Onboarding Form: Toggle Topic
+  const handleTopicToggle = (topic) => {
+    setOnboardingTopics(prev => 
+      prev.includes(topic) 
+        ? prev.filter(t => t !== topic) 
+        : [...prev, topic]
+    );
+  };
+
+  // Onboarding Form: Handle Submission
+  const handleOnboardingSubmit = async () => {
+    if (!onboardingFullName || !onboardingReadingLevel || !onboardingLocations) {
+      alert('Please fill in your name, reading level, and preferred locations.');
+      return;
+    }
+
+    const preferences = {
+      fullName: onboardingFullName,
+      topics: onboardingTopics,
+      otherTopic: onboardingOtherTopic,
+      readingLevel: onboardingReadingLevel,
+      locations: onboardingLocations
+    };
+
+    try {
+      // 1. Update user data in "database" (window.storage)
+      const updatedUser = { ...userData, preferences };
+      await window.storage.set(`user:${userData.id}`, JSON.stringify(updatedUser), false);
+      setUserData(updatedUser); // Update local state
+
+      // 2. Create and download the .txt file
+      const fileContent = `User Onboarding Data for: ${updatedUser.email}
+---
+User ID: ${updatedUser.id}
+Full Name: ${preferences.fullName}
+Reading Level: ${preferences.readingLevel}
+Locations: ${preferences.locations}
+
+Topics of Interest:
+${preferences.topics.length > 0 ? preferences.topics.map(t => `- ${t}`).join('\n') : 'None selected'}
+
+Other Topics:
+${preferences.otherTopic || 'None'}
+`;
+
+      const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `user_preferences_${userData.id}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+
+      // 3. Close the form
+      setShowOnboardingForm(false);
+      
+      // Clear form state
+      setOnboardingFullName('');
+      setOnboardingTopics([]);
+      setOnboardingOtherTopic('');
+      setOnboardingReadingLevel('');
+      setOnboardingLocations('');
+
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+      alert('There was an error saving your preferences. Please try again.');
+    }
+  };
+
 
   const handleSendMessage = () => {
     if (inputMessage.trim()) {
@@ -170,9 +276,9 @@ export default function PoliticalTransparencyUI() {
       id: 4,
       title: "Education Funding Vote",
       representative: "Rep. Michael Chen",
-      alignment: 78,
+      alignment: 45,
       category: "Education",
-      summary: "Supported increased education funding, aligning with campaign trail commitments.",
+      summary: "Voted against increased education funding, citing budget concerns despite campaign commitments.",
       timestamp: "2 days ago"
     }
   ];
@@ -182,14 +288,14 @@ export default function PoliticalTransparencyUI() {
       {/* User Profile Button */}
       <div className="fixed top-4 left-4 z-50">
         {isLoggedIn ? (
-          <div className="flex items-center space-x-3 bg-gradient-to-r from-purple-900/80 to-purple-800/80 backdrop-blur-xl px-4 py-2 rounded-full border border-purple-600/40 shadow-lg shadow-purple-500/20">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center font-bold text-sm">
+          <div className="flex items-center space-x-3 bg-gray-900/80 backdrop-blur-xl px-4 py-2 rounded-full border border-gray-700/40 shadow-lg">
+            <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center font-bold text-sm text-white">
               {userData?.name?.charAt(0).toUpperCase()}
             </div>
             <span className="text-sm font-medium text-white">{userData?.name}</span>
             <button
               onClick={handleLogout}
-              className="ml-2 p-1 hover:bg-purple-700/50 rounded-full transition-colors"
+              className="ml-2 p-1 hover:bg-gray-700/50 rounded-full transition-colors"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -197,7 +303,7 @@ export default function PoliticalTransparencyUI() {
         ) : (
           <button
             onClick={() => setShowLogin(true)}
-            className="flex items-center space-x-2 bg-gradient-to-r from-purple-900/80 to-purple-800/80 backdrop-blur-xl px-4 py-2 rounded-full border border-purple-600/40 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all"
+            className="flex items-center space-x-2 bg-gray-900/80 backdrop-blur-xl px-4 py-2 rounded-full border border-gray-700/40 shadow-lg hover:shadow-xl transition-all"
           >
             <LogIn className="w-4 h-4" />
             <span className="text-sm font-medium">Sign In</span>
@@ -208,57 +314,57 @@ export default function PoliticalTransparencyUI() {
       {/* Login Modal */}
       {showLogin && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-br from-purple-950 to-black border border-purple-600/40 rounded-2xl p-6 max-w-md w-full shadow-2xl shadow-purple-500/20">
-            <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <div className="bg-gray-950 border border-gray-700/40 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h2 className="text-2xl font-bold mb-6 text-white">
               {isSignup ? 'Create Account' : 'Welcome Back'}
             </h2>
             
             {isSignup && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-purple-300 mb-2">Name</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
                 <input
                   type="text"
                   value={signupName}
                   onChange={(e) => setSignupName(e.target.value)}
-                  className="w-full px-4 py-2 bg-purple-900/30 border border-purple-600/40 rounded-lg text-white placeholder-purple-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700/40 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-gray-500 focus:border-transparent"
                   placeholder="Your name"
                 />
               </div>
             )}
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-purple-300 mb-2">Email</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
               <input
                 type="email"
                 value={isSignup ? signupEmail : loginEmail}
                 onChange={(e) => isSignup ? setSignupEmail(e.target.value) : setLoginEmail(e.target.value)}
-                className="w-full px-4 py-2 bg-purple-900/30 border border-purple-600/40 rounded-lg text-white placeholder-purple-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700/40 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-gray-500 focus:border-transparent"
                 placeholder="you@example.com"
               />
             </div>
             
             <div className="mb-6">
-              <label className="block text-sm font-medium text-purple-300 mb-2">Password</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
               <input
                 type="password"
                 value={isSignup ? signupPassword : loginPassword}
                 onChange={(e) => isSignup ? setSignupPassword(e.target.value) : setLoginPassword(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (isSignup ? handleSignup() : handleLogin())}
-                className="w-full px-4 py-2 bg-purple-900/30 border border-purple-600/40 rounded-lg text-white placeholder-purple-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700/40 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-gray-500 focus:border-transparent"
                 placeholder="••••••••"
               />
             </div>
             
             <button
               onClick={isSignup ? handleSignup : handleLogin}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg shadow-purple-500/30"
+              className="w-full py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition-all shadow-lg"
             >
               {isSignup ? 'Sign Up' : 'Sign In'}
             </button>
             
             <button
               onClick={() => setIsSignup(!isSignup)}
-              className="w-full mt-3 text-sm text-purple-400 hover:text-purple-300"
+              className="w-full mt-3 text-sm text-gray-400 hover:text-gray-300"
             >
               {isSignup ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
             </button>
@@ -273,32 +379,133 @@ export default function PoliticalTransparencyUI() {
         </div>
       )}
 
+      {/* New User Onboarding Modal */}
+      {showOnboardingForm && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-gray-950 border border-gray-700/40 rounded-2xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
+            <h2 className="text-3xl font-bold text-white mb-3">Welcome, {userData?.name}!</h2>
+            <p className="text-gray-400 mb-6">Let's personalize your experience. Tell us a bit about yourself.</p>
+            
+            <form onSubmit={(e) => { e.preventDefault(); handleOnboardingSubmit(); }}>
+              {/* Full Name */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                <input
+                  type="text"
+                  value={onboardingFullName}
+                  onChange={(e) => setOnboardingFullName(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700/40 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                  placeholder="Your full name"
+                />
+              </div>
+
+              {/* Topics of Interest */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-300 mb-2">Topics of Interest</label>
+                <div className="flex flex-wrap gap-2">
+                  {topicsOfInterest.map((topic) => (
+                    <button
+                      type="button"
+                      key={topic}
+                      onClick={() => handleTopicToggle(topic)}
+                      className={`px-3 py-2 rounded-lg text-sm transition-all border ${
+                        onboardingTopics.includes(topic)
+                          ? 'bg-white text-black border-white font-semibold'
+                          : 'bg-gray-800/50 text-gray-300 border-gray-700 hover:bg-gray-700/50'
+                      }`}
+                    >
+                      {onboardingTopics.includes(topic) && <Check className="w-4 h-4 inline-block mr-1.5" />}
+                      {topic}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Other Topic */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-300 mb-2">Other Topics (optional)</label>
+                <input
+                  type="text"
+                  value={onboardingOtherTopic}
+                  onChange={(e) => setOnboardingOtherTopic(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700/40 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                  placeholder="e.g., Technology, Foreign Policy"
+                />
+              </div>
+
+              {/* Reading Level */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-300 mb-3">How in-depth would you like your writing to be?</label>
+                <div className="space-y-2">
+                  {readingLevelOptions.map((opt) => (
+                    <button
+                      type="button"
+                      key={opt.id}
+                      onClick={() => setOnboardingReadingLevel(opt.title)}
+                      className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${
+                        onboardingReadingLevel === opt.title
+                          ? 'bg-white/10 text-white border-white/50 ring-2 ring-white/50'
+                          : 'bg-gray-800/50 text-gray-300 border-gray-700 hover:bg-gray-700/50'
+                      }`}
+                    >
+                      {opt.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Locations */}
+              <div className="mb-8">
+                <label htmlFor="locations" className="block text-sm font-medium text-gray-300 mb-2">What cities or states would you like insights on?</label>
+                <input
+                  id="locations"
+                  type="text"
+                  value={onboardingLocations}
+                  onChange={(e) => setOnboardingLocations(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700/40 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                  placeholder="city, state; city, state"
+                />
+                <p className="text-xs text-gray-500 mt-1.5">Separate multiple locations with a semicolon (e.g., Austin, TX; New York, NY)</p>
+              </div>
+              
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="w-full py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition-all shadow-lg text-base"
+              >
+                Save Preferences & Continue
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-gradient-to-r from-purple-950 via-purple-900 to-black border-b border-purple-700/30 px-6 py-3.5 shadow-lg">
+        <header className="bg-gray-950 border-b border-gray-800 px-6 py-3.5 shadow-lg">
           <div className="flex items-center justify-center space-x-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+            <div className="w-9 h-9 bg-gray-700 rounded-xl flex items-center justify-center shadow-lg">
               <FileText className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold text-white">
                 Political Transparency
               </h1>
-              <p className="text-xs text-purple-300">Track what they say vs. what they do</p>
+              <p className="text-xs text-gray-400">Track what they say vs. what they do</p>
             </div>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto px-6 py-6 bg-gradient-to-br from-black via-purple-950/10 to-black">
+        <main className="flex-1 overflow-y-auto px-6 py-6 bg-gradient-to-br from-black via-gray-950/10 to-black">
           <div className="max-w-4xl mx-auto">
             {/* Welcome Section */}
             <div className="mb-8 animate-fade-in">
               <div className="flex items-center space-x-3 mb-3">
-                <Sparkles className="w-7 h-7 text-purple-400 animate-pulse" />
-                <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-500 bg-clip-text text-transparent">
-                  Hey {isLoggedIn && userData?.name ? userData.name : 'there'}!
+                <Sparkles className="w-7 h-7 text-gray-400" />
+                <h2 className="text-4xl font-bold text-white">
+                  Hey {isLoggedIn && userData?.name ? userData.name.split(' ')[0] : 'there'}!
                 </h2>
               </div>
               <p className="text-lg text-gray-300 ml-10">
@@ -313,8 +520,8 @@ export default function PoliticalTransparencyUI() {
                   key={category}
                   className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
                     category === 'All' 
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/40' 
-                      : 'bg-purple-900/20 text-purple-300 hover:bg-purple-800/30 border border-purple-700/30'
+                      ? 'bg-white text-black shadow-lg' 
+                      : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50'
                   }`}
                 >
                   {category}
@@ -327,12 +534,12 @@ export default function PoliticalTransparencyUI() {
               {mockStories.map((story, idx) => (
                 <div
                   key={story.id}
-                  className="bg-gradient-to-br from-purple-950/40 via-purple-900/20 to-black/60 backdrop-blur-md rounded-2xl border border-purple-700/30 p-5 hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/10 transition-all cursor-pointer"
+                  className="bg-gray-900/70 backdrop-blur-md rounded-2xl border border-gray-800 p-5 hover:border-gray-600 hover:shadow-xl transition-all cursor-pointer"
                   style={{ animationDelay: `${idx * 100}ms` }}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <div className="w-11 h-11 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg">
+                      <div className="w-11 h-11 bg-gray-700 rounded-full flex items-center justify-center shadow-lg">
                         <User className="w-5 h-5 text-white" />
                       </div>
                       <div>
@@ -343,7 +550,7 @@ export default function PoliticalTransparencyUI() {
                         </div>
                       </div>
                     </div>
-                    <span className="px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-full text-xs font-semibold border border-purple-500/40">
+                    <span className="px-3 py-1.5 bg-gray-700/50 text-gray-300 rounded-full text-xs font-semibold border border-gray-600/50">
                       {story.category}
                     </span>
                   </div>
@@ -358,9 +565,9 @@ export default function PoliticalTransparencyUI() {
                         <div className="w-28 h-2 bg-gray-800/50 rounded-full overflow-hidden backdrop-blur-sm">
                           <div 
                             className={`h-full rounded-full transition-all ${
-                              story.alignment >= 80 ? 'bg-gradient-to-r from-green-500 to-emerald-400' :
-                              story.alignment >= 60 ? 'bg-gradient-to-r from-yellow-500 to-orange-400' : 
-                              'bg-gradient-to-r from-red-500 to-pink-500'
+                              story.alignment >= 80 ? 'bg-gray-200' :
+                              story.alignment >= 60 ? 'bg-gray-500' : 
+                              'bg-gray-700'
                             }`}
                             style={{ width: `${story.alignment}%` }}
                           />
@@ -368,7 +575,7 @@ export default function PoliticalTransparencyUI() {
                         <span className="text-sm font-bold text-white">{story.alignment}%</span>
                       </div>
                     </div>
-                    <button className="text-purple-400 hover:text-purple-300 font-semibold text-sm transition-colors">
+                    <button className="text-gray-400 hover:text-gray-200 font-semibold text-sm transition-colors">
                       View Details →
                     </button>
                   </div>
@@ -378,7 +585,7 @@ export default function PoliticalTransparencyUI() {
 
             {/* Load More */}
             <div className="text-center mt-8">
-              <button className="px-6 py-3 bg-purple-900/20 border border-purple-700/30 text-purple-300 rounded-xl font-semibold hover:bg-purple-800/30 transition-all">
+              <button className="px-6 py-3 bg-gray-800/50 border border-gray-700/50 text-gray-300 rounded-xl font-semibold hover:bg-gray-700/50 transition-all">
                 Load More Stories
               </button>
             </div>
@@ -388,30 +595,30 @@ export default function PoliticalTransparencyUI() {
 
       {/* Chat Sidebar - Relay */}
       <div 
-        className={`bg-gradient-to-b from-purple-950/95 via-black to-black/95 backdrop-blur-xl border-l border-purple-700/30 flex flex-col transition-all duration-300 ease-in-out shadow-2xl ${
+        className={`bg-gradient-to-b from-gray-950/95 via-black to-black/95 backdrop-blur-xl border-l border-gray-800 flex flex-col transition-all duration-300 ease-in-out shadow-2xl ${
           isChatExpanded ? 'w-80' : 'w-0'
         }`}
       >
         {isChatExpanded && (
           <>
             {/* Chat Header */}
-            <div className="px-5 py-4 border-b border-purple-700/30 bg-gradient-to-r from-purple-900/50 to-transparent">
+            <div className="px-5 py-4 border-b border-gray-800 bg-gray-900/50">
               <div className="flex items-center space-x-2 mb-1">
-                <Sparkles className="w-5 h-5 text-purple-400" />
+                <Sparkles className="w-5 h-5 text-gray-300" />
                 <h3 className="font-bold text-white">Relay</h3>
               </div>
-              <p className="text-xs text-purple-300">Your AI transparency assistant</p>
+              <p className="text-xs text-gray-400">Your AI transparency assistant</p>
             </div>
 
             {/* Suggested Questions */}
             {chatMessages.length === 0 && (
               <div className="px-5 py-4 space-y-2">
-                <p className="text-xs font-semibold text-purple-400 mb-3">SUGGESTED QUESTIONS</p>
+                <p className="text-xs font-semibold text-gray-400 mb-3">SUGGESTED QUESTIONS</p>
                 {suggestedQuestions.map((question, idx) => (
                   <button
                     key={idx}
                     onClick={() => setInputMessage(question)}
-                    className="w-full text-left px-3 py-2.5 bg-purple-900/20 hover:bg-purple-800/30 rounded-xl text-xs text-purple-200 transition-all border border-purple-700/30 hover:border-purple-600/50"
+                    className="w-full text-left px-3 py-2.5 bg-gray-800/50 hover:bg-gray-700/50 rounded-xl text-xs text-gray-200 transition-all border border-gray-700 hover:border-gray-600/50"
                   >
                     {question}
                   </button>
@@ -429,8 +636,8 @@ export default function PoliticalTransparencyUI() {
                   <div
                     className={`max-w-[85%] px-3 py-2.5 rounded-xl ${
                       msg.type === 'user'
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                        : 'bg-purple-900/40 text-purple-100 border border-purple-700/40'
+                        ? 'bg-white text-black shadow-lg'
+                        : 'bg-gray-800 text-gray-100 border border-gray-700'
                     }`}
                   >
                     <p className="text-xs leading-relaxed">{msg.text}</p>
@@ -440,7 +647,7 @@ export default function PoliticalTransparencyUI() {
             </div>
 
             {/* Chat Input */}
-            <div className="px-5 py-4 border-t border-purple-700/30 bg-gradient-to-r from-transparent to-purple-900/30">
+            <div className="px-5 py-4 border-t border-gray-800 bg-gray-900/30">
               <div className="flex space-x-2">
                 <input
                   type="text"
@@ -448,11 +655,11 @@ export default function PoliticalTransparencyUI() {
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder="Ask Relay anything..."
-                  className="flex-1 px-4 py-2.5 bg-purple-900/30 border border-purple-700/40 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-purple-400 text-sm"
+                  className="flex-1 px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-transparent text-white placeholder-gray-500 text-sm"
                 />
                 <button
                   onClick={handleSendMessage}
-                  className="p-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg shadow-purple-500/30"
+                  className="p-2.5 bg-white text-black rounded-xl hover:bg-gray-200 transition-all shadow-lg"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -465,7 +672,7 @@ export default function PoliticalTransparencyUI() {
       {/* Toggle Chat Button */}
       <button
         onClick={() => setIsChatExpanded(!isChatExpanded)}
-        className="fixed right-4 bottom-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 p-4 rounded-full shadow-2xl shadow-purple-500/40 transition-all z-40 hover:scale-110"
+        className="fixed right-4 bottom-6 bg-white text-black hover:bg-gray-200 p-4 rounded-full shadow-2xl transition-all z-40 hover:scale-110"
       >
         {isChatExpanded ? <ChevronRight className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
       </button>
