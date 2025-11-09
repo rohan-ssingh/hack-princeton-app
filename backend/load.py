@@ -209,7 +209,7 @@ def make_rag_tool(storage: Storage):
             schema=schema,
             date_range=date_range,
         )
-        return storage.rag(**payload.model_dump())
+        return storage.rag(**payload.dict())
 
     rag.__name__ = "rag"
     return rag

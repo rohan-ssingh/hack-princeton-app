@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import {
   useCallback,
   useEffect,
@@ -10,6 +11,7 @@ import {
   useState,
 } from "react";
 import {
+  ChevronDown,
   ChevronRight,
   Clock,
   FileText,
@@ -151,19 +153,44 @@ export function Chat({
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [hasAppendedQuery, setHasAppendedQuery] = useState(false);
   const [isChatExpanded, setIsChatExpanded] = useState(true);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const messageEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setMessages(initialMessages);
   }, [initialMessages]);
+
+  useEffect(() => {
+    setIsUserMenuOpen(false);
+  }, [session?.user]);
+
+  useEffect(() => {
+    if (!isUserMenuOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isUserMenuOpen]);
 
   const backendEndpoint = useMemo(() => normalizeBackendEndpoint(), []);
 
@@ -247,6 +274,27 @@ export function Chat({
     }
     return undefined;
   }, [session?.user?.name, session?.user?.email]);
+
+  const currentTheme = resolvedTheme === "dark" ? "dark" : "light";
+  const nextThemeLabel = currentTheme === "dark" ? "Light" : "Dark";
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme(currentTheme === "dark" ? "light" : "dark");
+    setIsUserMenuOpen(false);
+  }, [currentTheme, setTheme]);
+
+  const handleNewChat = useCallback(() => {
+    setIsUserMenuOpen(false);
+    router.push("/");
+    router.refresh();
+  }, [router]);
+
+  const handleSignOut = useCallback(() => {
+    setIsUserMenuOpen(false);
+    signOut({
+      redirectTo: "/",
+    });
+  }, [signOut]);
 
   const sendMessage = useCallback(
     async (message: string) => {
@@ -387,54 +435,69 @@ export function Chat({
 
   return (
     <div className="relative flex h-dvh w-full overflow-hidden bg-black text-white">
-      <div className="fixed left-4 top-4 z-50">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="fixed left-4 top-2 z-50">
         {isAuthLoading ? (
-          <div className="flex items-center space-x-3 rounded-full border border-gray-700/40 bg-gray-900/80 px-4 py-2 text-sm text-gray-400 shadow-lg">
+          <div className="flex items-center space-x-3 rounded-full border border-gray-700/40 bg-gray-900/80 px-4 text-sm text-gray-400 shadow-lg">
             <Loader2 className="h-4 w-4 animate-spin" />
             Checking session…
           </div>
         ) : session?.user ? (
-          <div className="flex items-center space-x-3 rounded-full border border-gray-700/40 bg-gray-900/80 px-4 py-2 text-sm text-white shadow-lg">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-600 font-semibold uppercase">
-              {userInitial}
-            </div>
-            <span className="font-medium">
-              {session.user.name ?? session.user.email}
-            </span>
+          <div className="relative" ref={userMenuRef}>
             <button
-              onClick={() => signOut({ redirectTo: "/" })}
-              className="rounded-full p-1 transition-colors hover:bg-gray-700/50"
+              className="flex items-center space-x-3 rounded-full border border-gray-700/40 bg-gray-900/80 px-4 py-2 text-sm text-white shadow-lg transition-all hover:shadow-xl"
+              onClick={() => setIsUserMenuOpen((prev) => !prev)}
               type="button"
             >
-              <LogOut className="h-4 w-4" />
-              <span className="sr-only">Sign out</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-600 font-semibold uppercase">
+                {userInitial}
+              </div>
+              <span className="font-medium">
+                {session.user.name ?? session.user.email}
+              </span>
+              <ChevronDown className="h-4 w-4 opacity-80" />
             </button>
+
+            {isUserMenuOpen && (
+              <div className="flex w-60 bg-gray-950/95 p-3 text-sm text-gray-200 shadow-2xl backdrop-blur-xl">
+                <p className="mb-2 text-xs uppercase tracking-wide text-gray-400">
+                  Signed in as{" "}
+                  <span className="font-semibold text-white">
+                    {session.user.email ?? session.user.name}
+                  </span>
+                </p>
+                <div className="space-y-1">
+                  <button
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-red-300 transition-colors hover:bg-red-500/10 hover:text-red-200"
+                    onClick={handleSignOut}
+                    type="button"
+                  >
+                    Sign out
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <button
-            onClick={() => router.push("/login")}
-            className="flex items-center space-x-2 rounded-full border border-gray-700/40 bg-gray-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all hover:shadow-xl"
-            type="button"
-          >
-            <LogIn className="h-4 w-4" />
-            <span>Sign In</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowLogin(true)}
+              className="flex items-center space-x-2 rounded-full border border-gray-700/40 bg-gray-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all hover:shadow-xl"
+              type="button"
+            >
+              <LogIn className="h-4 w-4" />
+              <span>Sign In</span>
+            </button>
+          </div>
         )}
       </div>
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="border-b border-gray-800 bg-gray-950 px-6 py-3.5 shadow-lg">
+        <header className="border-b border-gray-800 bg-gray-950 px-6 py-4 shadow-lg">
           <div className="flex items-center justify-center space-x-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-700 shadow-lg">
-              <FileText className="h-5 w-5 text-white" />
-            </div>
             <div>
               <h1 className="text-xl font-bold text-white">
-                Political Transparency
+                Relay
               </h1>
-              <p className="text-xs text-gray-400">
-                Track what they say vs. what they do
-              </p>
             </div>
           </div>
         </header>
