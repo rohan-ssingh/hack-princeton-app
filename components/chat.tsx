@@ -152,8 +152,7 @@ export function Chat({
 }: ChatProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { data: session, status } = useSession();
-  const authStatus = status;
+  const { data: session, status: sessionStatus } = useSession();
   const { resolvedTheme, setTheme } = useTheme();
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
@@ -162,6 +161,7 @@ export function Chat({
   const [isChatExpanded, setIsChatExpanded] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [selectedText, setSelectedText] = useState("");
+  const [chatStatus, setChatStatus] = useState<"idle" | "loading">("idle");
 
   const messageEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -343,6 +343,8 @@ export function Chat({
 
       setMessages((prev) => [...prev, userMessage]);
 
+      setChatStatus("loading");
+
       try {
         const response = await fetch(backendEndpoint, {
           method: "POST",
@@ -405,6 +407,7 @@ export function Chat({
             "We couldn't reach the chat service. Please try again.",
         });
       } finally {
+        setChatStatus("idle");
       }
     },
     [backendEndpoint, messages]
@@ -428,10 +431,10 @@ export function Chat({
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, status]);
+  }, [messages, chatStatus]);
 
   const handleSend = () => {
-    if (isReadonly || status === "loading") {
+    if (isReadonly || chatStatus === "loading") {
       return;
     }
 
@@ -468,8 +471,8 @@ export function Chat({
     }
   }, [selectedText]);
 
-  const isAuthLoading = authStatus === "loading";
-  const isSendDisabled = status === "loading" || isReadonly;
+  const isAuthLoading = sessionStatus === "loading";
+  const isSendDisabled = chatStatus === "loading" || isReadonly;
 
   return (
     <div className="relative flex h-dvh w-full overflow-hidden bg-black text-white">
@@ -521,9 +524,9 @@ export function Chat({
           <div className="flex items-center space-x-3">
             <button
               className="flex items-center space-x-2 rounded-full border border-gray-700/40 bg-gray-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all hover:shadow-xl"
-              disabled={status === "loading"}
+              disabled={sessionStatus === "loading"}
               onClick={() => {
-                if (status === "loading") {
+                if (sessionStatus === "loading") {
                   toast({
                     type: "error",
                     description:
@@ -751,7 +754,7 @@ export function Chat({
                   );
                 })}
 
-                {status === "loading" && (
+                {chatStatus === "loading" && (
                   <div className="flex justify-start">
                     <div className="flex items-center space-x-2 rounded-xl border border-gray-700 bg-gray-800/70 px-3 py-2 text-sm text-gray-200">
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -806,7 +809,7 @@ export function Chat({
                   className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-black shadow-lg transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
                   type="button"
                 >
-                  {status === "loading" ? (
+                  {chatStatus === "loading" ? (
                     <Loader2 className="h-4 w-4 animate-spin text-black" />
                   ) : (
                     <Send className="h-4 w-4" />
