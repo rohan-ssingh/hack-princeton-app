@@ -91,9 +91,9 @@ function PureMessages({
                 }
               />
               {message.parts
-                .filter((part) => part.type === "citation")
+                .filter((part) => (part as { type?: string }).type === "citation")
                 .map((part, i) => (
-                  <Citation key={i} url={part.text} />
+                  <Citation key={i} url={(part as { text: string }).text} />
                 ))}
             </div>
           ))}
