@@ -477,7 +477,11 @@ export function Chat({
     }
   }, [selectedText]);
 
-  const isAuthLoading = sessionStatus === "loading";
+  const sessionStatusExtended = sessionStatus as
+    | "authenticated"
+    | "unauthenticated"
+    | "loading";
+  const isAuthLoading = sessionStatusExtended === "loading";
   const isSendDisabled = chatStatus === "loading" || isReadonly;
 
   return (
@@ -530,9 +534,9 @@ export function Chat({
           <div className="flex items-center space-x-3">
             <button
               className="flex items-center space-x-2 rounded-full border border-gray-700/40 bg-gray-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all hover:shadow-xl"
-              disabled={sessionStatus === "loading"}
+              disabled={isAuthLoading}
               onClick={() => {
-                if (sessionStatus === "loading") {
+                if (isAuthLoading) {
                   toast({
                     type: "error",
                     description:
