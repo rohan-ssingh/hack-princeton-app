@@ -40,7 +40,11 @@ type ChatProps = {
   initialUserTopics?: string[];
 };
 
-type MessagePart = ChatMessage["parts"][number];
+type MessagePart =
+  | { type: "text"; text: string }
+  | { type: "source-url"; url: string; title?: string }
+  | { type: "source-document"; id: string; title?: string }
+  | { type: "citation"; text: string }
 
 const isTextPart = (
   part: MessagePart
