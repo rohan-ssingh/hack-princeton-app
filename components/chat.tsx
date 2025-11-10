@@ -388,7 +388,11 @@ export function Chat({
 
             return { type: "citation" as const, text: url };
           })
-          .filter((value): value is { type: "citation"; text: string } => Boolean(value));
+          .filter(
+            (
+              value: { type: "citation"; text: string } | null
+            ): value is { type: "citation"; text: string } => Boolean(value)
+          );
 
         const assistantMessage: ChatMessage = {
           id: generateUUID(),
