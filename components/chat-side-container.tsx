@@ -1,5 +1,6 @@
 "use client";
 
+import type { UseChatHelpers } from "@ai-sdk/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
@@ -18,17 +19,17 @@ type ChatSideContainerProps = {
   chatId: string;
   isReadonly: boolean;
   messages: ChatMessage[];
-  setMessages: (messages: ChatMessage[]) => void;
-  regenerate: () => void;
-  status: "idle" | "loading";
+  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
+  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
+  status: UseChatHelpers<ChatMessage>["status"];
   votes: Vote[] | undefined;
   selectedModelId: string;
   attachments: Attachment[];
   setAttachments: (attachments: Attachment[] | ((prev: Attachment[]) => Attachment[])) => void;
   input: string;
   setInput: (input: string | ((prev: string) => string)) => void;
-  sendMessage: (message: string, attachments?: Attachment[]) => void;
-  stop: () => void;
+  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
+  stop: UseChatHelpers<ChatMessage>["stop"];
   selectedVisibilityType: VisibilityType;
   onModelChange?: (modelId: string) => void;
   usage?: AppUsage;
