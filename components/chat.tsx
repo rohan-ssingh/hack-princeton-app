@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
@@ -14,20 +13,30 @@ import {
 import {
   ChevronDown,
   ChevronRight,
+  Clock,
+  FileText,
   Loader2,
   LogIn,
   LogOut,
   Send,
   Sparkles,
+  User,
 } from "lucide-react";
-import { createArticleSlug, getArticles } from "@/lib/articles";
 import type { ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import type { VisibilityType } from "./visibility-selector";
 import { cn, generateUUID } from "@/lib/utils";
 import { toast } from "./toast";
 
-const normalizeCategory = (value: string) => value.trim().toLowerCase();
+type Story = {
+  id: number;
+  title: string;
+  representative: string;
+  alignment: number;
+  category: string;
+  summary: string;
+  timestamp: string;
+};
 
 type ChatProps = {
   id: string;
@@ -37,14 +46,9 @@ type ChatProps = {
   isReadonly: boolean;
   autoResume: boolean;
   initialLastContext?: AppUsage;
-  initialUserTopics?: string[];
 };
 
-type MessagePart =
-  | { type: "text"; text: string }
-  | { type: "source-url"; url: string; title?: string }
-  | { type: "source-document"; id: string; title?: string }
-  | { type: "citation"; text: string }
+type MessagePart = ChatMessage["parts"][number];
 
 const isTextPart = (
   part: MessagePart
@@ -145,7 +149,6 @@ export function Chat({
   isReadonly,
   autoResume: _autoResume,
   initialLastContext: _initialLastContext,
-  initialUserTopics = [],
 }: ChatProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -159,7 +162,6 @@ export function Chat({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [chatStatus, setChatStatus] = useState<"idle" | "loading">("idle");
-  const [selectedFeedTopic, setSelectedFeedTopic] = useState<string>("All");
 
   const messageEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -231,95 +233,56 @@ export function Chat({
 
   const backendEndpoint = useMemo(() => normalizeBackendEndpoint(), []);
 
-  const userTopics = useMemo(() => {
-    const topicsSource =
-      session?.user?.topics && session.user.topics.length > 0
-        ? session.user.topics
-        : initialUserTopics;
+  const categories = useMemo(
+    () => ["All", "Economy", "Healthcare", "Environment", "Education", "Justice"],
+    []
+  );
 
-    return (topicsSource ?? [])
-      .map((topic) => topic.trim())
-      .filter((topic) => topic.length > 0);
-  }, [initialUserTopics, session?.user?.topics]);
-
-  const categorizedArticles = useMemo(() => {
-    const articles = getArticles();
-    const grouped = new Map<
-      string,
-      { name: string; normalized: string; articles: typeof articles }
-    >();
-
-    for (const article of articles) {
-      const normalized = normalizeCategory(article.categoryName);
-      if (!grouped.has(normalized)) {
-        grouped.set(normalized, {
-          name: article.categoryName,
-          normalized,
-          articles: [],
-        });
-      }
-
-      grouped.get(normalized)!.articles.push(article);
-    }
-
-    return Array.from(grouped.values());
-  }, []);
-
-  const preferredCategorySet = useMemo(() => {
-    return new Set(userTopics.map((topic) => normalizeCategory(topic)));
-  }, [userTopics]);
-
-  const feedCategories = useMemo(() => {
-    if (preferredCategorySet.size === 0) {
-      return [];
-    }
-
-    return categorizedArticles.filter((category) =>
-      preferredCategorySet.has(category.normalized)
-    );
-  }, [categorizedArticles, preferredCategorySet]);
-
-  const availableTopicFilters = useMemo(() => {
-    if (userTopics.length === 0) {
-      return ["All"];
-    }
-
-    return ["All", ...userTopics];
-  }, [userTopics]);
-
-  useEffect(() => {
-    if (
-      selectedFeedTopic !== "All" &&
-      !userTopics.some(
-        (topic) => normalizeCategory(topic) === normalizeCategory(selectedFeedTopic)
-      )
-    ) {
-      setSelectedFeedTopic("All");
-    }
-  }, [selectedFeedTopic, userTopics]);
-
-  const feedArticles = useMemo(() => {
-    if (feedCategories.length === 0) {
-      return [];
-    }
-
-    const flattened = feedCategories.flatMap((category) =>
-      category.articles.map((article) => ({
-        categoryName: category.name,
-        article,
-        slug: createArticleSlug(category.name, article.title),
-      }))
-    );
-
-    if (selectedFeedTopic === "All") {
-      return flattened;
-    }
-
-    const normalizedSelection = normalizeCategory(selectedFeedTopic);
-    return flattened.filter(
-      (item) => normalizeCategory(item.categoryName) === normalizedSelection
-    );
-  }, [feedCategories, selectedFeedTopic]);
+  const stories = useMemo<Story[]>(
+    () => [
+      {
+        id: 1,
+        title: "Infrastructure Bill Vote Analysis",
+        representative: "Sen. Jane Smith",
+        alignment: 87,
+        category: "Economy",
+        summary:
+          "Voted in favor of infrastructure spending, consistent with campaign promises on job creation.",
+        timestamp: "2 hours ago",
+      },
+      {
+        id: 2,
+        title: "Healthcare Reform Statement",
+        representative: "Rep. John Doe",
+        alignment: 65,
+        category: "Healthcare",
+        summary:
+          "Public statements support expansion, but recent committee votes show mixed record.",
+        timestamp: "5 hours ago",
+      },
+      {
+        id: 3,
+        title: "Climate Policy Update",
+        representative: "Sen. Maria Garcia",
+        alignment: 92,
+        category: "Environment",
+        summary:
+          "Strong alignment between campaign promises and legislative actions on renewable energy.",
+        timestamp: "1 day ago",
+      },
+      {
+        id: 4,
+        title: "Education Funding Vote",
+        representative: "Rep. Michael Chen",
+        alignment: 45,
+        category: "Education",
+        summary:
+          "Voted against increased education funding, citing budget concerns despite campaign commitments.",
+        timestamp: "2 days ago",
+      },
+    ],
+    []
+  );
 
   const firstName = useMemo(() => {
     if (session?.user?.name) {
@@ -609,53 +572,99 @@ export function Chat({
               </p>
             </div>
 
-            {userTopics.length > 0 && (
-              <div className="mb-6 flex flex-wrap gap-2">
-                {availableTopicFilters.map((topic) => (
-                  <button
-                    key={topic}
-                    className={cn(
-                      "rounded-full border px-4 py-2 text-sm font-semibold transition-all",
-                      selectedFeedTopic === topic
-                        ? "border-white bg-white text-black shadow-lg"
-                        : "border-gray-700/60 bg-gray-800/60 text-gray-300 hover:bg-gray-700/70"
-                    )}
-                    onClick={() => setSelectedFeedTopic(topic)}
-                    type="button"
-                  >
-                    {topic}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="mb-6 flex space-x-2 overflow-x-auto pb-2">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  className={cn(
+                    "whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-all",
+                    category === "All"
+                      ? "bg-white text-black shadow-lg"
+                      : "border border-gray-700/50 bg-gray-800/50 text-gray-300 hover:bg-gray-700/50"
+                  )}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
 
             <div className="space-y-4">
-              {feedArticles.length === 0 ? (
-                <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-6 text-sm text-gray-300">
-                  No articles match your selected topics yet. Try adjusting your interests to discover more content.
-                </div>
-              ) : (
-                feedArticles.map(({ article, categoryName, slug }) => (
-                  <Link
-                    key={slug}
-                    href={`/articles/${slug}`}
-                    className="block rounded-2xl border border-gray-800 bg-gray-900/60 p-5 transition-all hover:border-gray-600 hover:bg-gray-900/80"
-                  >
-                    <span className="inline-flex rounded-full border border-gray-700/60 bg-gray-800/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-300">
-                      {categoryName}
+              {stories.map((story, idx) => (
+                <article
+                  key={story.id}
+                  className="cursor-pointer rounded-2xl border border-gray-800 bg-gray-900/70 p-5 shadow-lg transition-all hover:border-gray-600 hover:shadow-xl"
+                  style={{ animationDelay: `${idx * 100}ms` }}
+                >
+                  <div className="mb-3 flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-700 shadow-lg">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white">
+                          {story.representative}
+                        </h3>
+                        <div className="flex items-center space-x-1.5 text-xs text-gray-400">
+                          <Clock className="h-3 w-3" />
+                          <span>{story.timestamp}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="rounded-full border border-gray-600/50 bg-gray-700/50 px-3 py-1.5 text-xs font-semibold text-gray-300">
+                      {story.category}
                     </span>
-                    <h4 className="mt-3 text-lg font-semibold text-white">
-                      {article.title}
-                    </h4>
-                    <p className="mt-2 line-clamp-3 text-sm text-gray-300">
-                      {article.summary}
-                    </p>
-                    <span className="mt-4 inline-flex items-center text-sm font-semibold text-gray-400">
-                      Read full briefing →
-                    </span>
-                  </Link>
-                ))
-              )}
+                  </div>
+
+                  <h4 className="mb-2 text-lg font-bold text-white">
+                    {story.title}
+                  </h4>
+                  <p className="mb-4 text-sm leading-relaxed text-gray-300">
+                    {story.summary}
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-xs font-medium text-gray-400">
+                        Alignment:
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        <div className="h-2 w-28 overflow-hidden rounded-full bg-gray-800/50">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              story.alignment >= 80
+                                ? "bg-gray-200"
+                                : story.alignment >= 60
+                                ? "bg-gray-500"
+                                : "bg-gray-700"
+                            )}
+                            style={{ width: `${story.alignment}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-bold text-white">
+                          {story.alignment}%
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-gray-400 transition-colors hover:text-gray-200"
+                    >
+                      View Details →
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="mt-8 text-center">
+              <button
+                type="button"
+                className="rounded-xl border border-gray-700/50 bg-gray-800/50 px-6 py-3 text-sm font-semibold text-gray-300 transition-all hover:bg-gray-700/50"
+              >
+                Load More Stories
+              </button>
             </div>
           </div>
         </main>
