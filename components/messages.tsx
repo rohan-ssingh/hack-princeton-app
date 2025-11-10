@@ -47,7 +47,7 @@ function PureMessages({
   useDataStream();
 
   useEffect(() => {
-    if (status === "loading") {
+    if (status === "streaming") {
       requestAnimationFrame(() => {
         const container = messagesContainerRef.current;
         if (container) {
@@ -75,7 +75,7 @@ function PureMessages({
               <PreviewMessage
                 chatId={chatId}
                 isLoading={
-                  status === "loading" && messages.length - 1 === index
+                  status === "streaming" && messages.length - 1 === index
                 }
                 isReadonly={isReadonly}
                 message={message}
@@ -99,7 +99,7 @@ function PureMessages({
           ))}
 
           <AnimatePresence mode="wait">
-            {status === "loading" && <ThinkingMessage key="thinking" />}
+            {status === "submitted" && <ThinkingMessage key="thinking" />}
           </AnimatePresence>
 
           <div
