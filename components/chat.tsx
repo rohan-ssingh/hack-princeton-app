@@ -711,9 +711,10 @@ export function Chat({
                     .join("\n")
                     .trim();
 
-                  const citations = message.parts
-                    .filter(isCitationPart)
-                    .map((part) => part.text);
+                  const citationParts = message.parts.filter(
+                    isCitationPart
+                  ) as Array<MessagePart & { type: "citation"; text: string }>;
+                  const citations = citationParts.map((part) => part.text);
 
                   return (
                     <div
