@@ -59,7 +59,7 @@ const isTextPart = (
 const isCitationPart = (
   part: MessagePart
 ): part is MessagePart & { type: "citation"; text: string } =>
-  part.type === "citation" &&
+  (part as { type?: string }).type === "citation" &&
   typeof (part as { text?: unknown }).text === "string";
 
 const normalizeBackendEndpoint = () => {
