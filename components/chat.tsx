@@ -46,6 +46,7 @@ type ChatProps = {
   isReadonly: boolean;
   autoResume: boolean;
   initialLastContext?: AppUsage;
+  initialUserTopics?: string[];
 };
 
 type MessagePart = ChatMessage["parts"][number];
@@ -149,6 +150,7 @@ export function Chat({
   isReadonly,
   autoResume: _autoResume,
   initialLastContext: _initialLastContext,
+  initialUserTopics: _initialUserTopics = [],
 }: ChatProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
