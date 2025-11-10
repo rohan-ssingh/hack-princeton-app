@@ -18,7 +18,7 @@ const normalizeItem = (item: any): ArticleRecord => ({
   summary: String(item.article_summary ?? ""),
   body: String(item.article_body ?? ""),
   references: Array.isArray(item.referenced_urls)
-    ? item.referenced_urls.map((value) => String(value))
+    ? item.referenced_urls.map((value: unknown) => String(value))
     : [],
 });
 
