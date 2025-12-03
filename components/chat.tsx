@@ -37,6 +37,8 @@ type Story = {
   category: string;
   summary: string;
   timestamp: string;
+  body?: string; // Optional: full article body text
+  references?: string[]; // Optional: array of reference URLs
 };
 
 type ChatProps = {
@@ -1003,21 +1005,23 @@ export function Chat({
               </header>
 
               <article className="space-y-6 max-h-[60vh] overflow-y-auto">
-                {matchingArticle ? (
+                {/* Use story body if available, otherwise fall back to matching article */}
+                {(selectedStory.body || matchingArticle) ? (
                   <>
                     <div className="prose prose-invert max-w-none space-y-4 text-gray-200">
-                      {renderParagraphs(matchingArticle.body).map((paragraph, index) => (
+                      {renderParagraphs(selectedStory.body || matchingArticle?.body || "").map((paragraph, index) => (
                         <p key={`paragraph-${index}`} className="leading-relaxed">
                           {paragraph}
                         </p>
                       ))}
                     </div>
 
-                    {matchingArticle.references.length > 0 && (
+                    {((selectedStory.references && selectedStory.references.length > 0) || 
+                      (matchingArticle && matchingArticle.references.length > 0)) && (
                       <section className="space-y-3 border-t border-gray-800 pt-6">
                         <h2 className="text-lg font-semibold text-white">Sources</h2>
                         <ul className="space-y-2 text-sm text-gray-300">
-                          {matchingArticle.references.map((reference, index) => (
+                          {(selectedStory.references || matchingArticle?.references || []).map((reference, index) => (
                             <li key={index}>
                               <a
                                 className="underline-offset-4 transition hover:text-white hover:underline break-all"
