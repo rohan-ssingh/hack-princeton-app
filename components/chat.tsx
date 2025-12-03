@@ -164,6 +164,7 @@ export function Chat({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [chatStatus, setChatStatus] = useState<"idle" | "loading">("idle");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   const messageEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -254,6 +255,16 @@ export function Chat({
       },
       {
         id: 2,
+        title: "Tax Reform Proposal",
+        representative: "Rep. Robert Williams",
+        alignment: 72,
+        category: "Economy",
+        summary:
+          "Introduced comprehensive tax reform bill focusing on middle-class relief and corporate accountability.",
+        timestamp: "1 day ago",
+      },
+      {
+        id: 3,
         title: "Healthcare Reform Statement",
         representative: "Rep. John Doe",
         alignment: 65,
@@ -263,7 +274,17 @@ export function Chat({
         timestamp: "5 hours ago",
       },
       {
-        id: 3,
+        id: 4,
+        title: "Mental Health Services Expansion",
+        representative: "Sen. Sarah Johnson",
+        alignment: 88,
+        category: "Healthcare",
+        summary:
+          "Co-sponsored bill to expand mental health services in rural communities, matching campaign platform.",
+        timestamp: "3 days ago",
+      },
+      {
+        id: 5,
         title: "Climate Policy Update",
         representative: "Sen. Maria Garcia",
         alignment: 92,
@@ -273,7 +294,17 @@ export function Chat({
         timestamp: "1 day ago",
       },
       {
-        id: 4,
+        id: 6,
+        title: "Water Quality Protection Act",
+        representative: "Rep. David Lee",
+        alignment: 78,
+        category: "Environment",
+        summary:
+          "Voted in favor of strengthening water quality standards, consistent with environmental platform.",
+        timestamp: "4 days ago",
+      },
+      {
+        id: 7,
         title: "Education Funding Vote",
         representative: "Rep. Michael Chen",
         alignment: 45,
@@ -282,9 +313,56 @@ export function Chat({
           "Voted against increased education funding, citing budget concerns despite campaign commitments.",
         timestamp: "2 days ago",
       },
+      {
+        id: 8,
+        title: "Student Loan Relief Program",
+        representative: "Sen. Emily Brown",
+        alignment: 91,
+        category: "Education",
+        summary:
+          "Introduced legislation to expand student loan forgiveness programs, fulfilling campaign promise.",
+        timestamp: "6 hours ago",
+      },
+      {
+        id: 9,
+        title: "Criminal Justice Reform Bill",
+        representative: "Sen. James Wilson",
+        alignment: 85,
+        category: "Justice",
+        summary:
+          "Co-sponsored comprehensive criminal justice reform focusing on sentencing reform and rehabilitation programs.",
+        timestamp: "1 day ago",
+      },
+      {
+        id: 10,
+        title: "Police Accountability Measures",
+        representative: "Rep. Lisa Anderson",
+        alignment: 70,
+        category: "Justice",
+        summary:
+          "Voted in favor of increased police transparency and accountability measures, aligning with campaign platform.",
+        timestamp: "2 days ago",
+      },
+      {
+        id: 11,
+        title: "Immigration Court Backlog Reform",
+        representative: "Sen. Carlos Rodriguez",
+        alignment: 68,
+        category: "Justice",
+        summary:
+          "Introduced bill to address immigration court backlog and improve due process for asylum seekers.",
+        timestamp: "3 days ago",
+      },
     ],
     []
   );
+
+  const filteredStories = useMemo(() => {
+    if (selectedCategory === "All") {
+      return stories;
+    }
+    return stories.filter((story) => story.category === selectedCategory);
+  }, [stories, selectedCategory]);
 
   const firstName = useMemo(() => {
     if (session?.user?.name) {
@@ -587,9 +665,10 @@ export function Chat({
                 <button
                   key={category}
                   type="button"
+                  onClick={() => setSelectedCategory(category)}
                   className={cn(
                     "whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-all",
-                    category === "All"
+                    category === selectedCategory
                       ? "bg-white text-black shadow-lg"
                       : "border border-gray-700/50 bg-gray-800/50 text-gray-300 hover:bg-gray-700/50"
                   )}
@@ -600,7 +679,7 @@ export function Chat({
             </div>
 
             <div className="space-y-4">
-              {stories.map((story, idx) => (
+              {filteredStories.map((story, idx) => (
                 <article
                   key={story.id}
                   className="cursor-pointer rounded-2xl border border-gray-800 bg-gray-900/70 p-5 shadow-lg transition-all hover:border-gray-600 hover:shadow-xl"
