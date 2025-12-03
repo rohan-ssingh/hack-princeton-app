@@ -245,119 +245,139 @@ export function Chat({
 
   const stories = useMemo<Story[]>(
     () => [
+      //
+      // ECONOMY (2)
+      //
       {
         id: 1,
-        title: "Infrastructure Bill Vote Analysis",
-        representative: "Sen. Jane Smith",
-        alignment: 87,
+        title: "Tax Policy Debate Centers on Equity and Modernization",
+        representative: "State Fiscal Committees",
+        alignment: 76,
         category: "Economy",
         summary:
-          "Voted in favor of infrastructure spending, consistent with campaign promises on job creation.",
-        timestamp: "2 hours ago",
+          "Lawmakers weigh revisions to tax credits and investments in digital tax administration, aiming to balance fairness with modernization.",
+        timestamp: "1 day ago",
       },
       {
         id: 2,
-        title: "Tax Reform Proposal",
-        representative: "Rep. Robert Williams",
-        alignment: 72,
+        title: "Community Priorities Drive Tax and Economic Policy",
+        representative: "Economic Progress Council",
+        alignment: 82,
         category: "Economy",
         summary:
-          "Introduced comprehensive reform bill focusing on middle-class relief and corporate accountability.",
-        timestamp: "1 day ago",
+          "Public concerns about housing and basic needs shape fiscal agendas, supported by annual reports and modernization initiatives.",
+        timestamp: "2 days ago",
       },
+  
+      //
+      // HEALTHCARE (3)
+      //
       {
         id: 3,
-        title: "Healthcare Reform Statement",
-        representative: "Rep. John Doe",
-        alignment: 65,
-        category: "Healthcare",
-        summary:
-          "Public statements support expansion, but recent committee votes show mixed record.",
-        timestamp: "5 hours ago",
-      },
-      {
-        id: 4,
-        title: "Mental Health Services Expansion",
-        representative: "Sen. Sarah Johnson",
+        title: "Healthcare Reform Set for July 2025 Implementation",
+        representative: "Health & Human Services",
         alignment: 88,
         category: "Healthcare",
         summary:
-          "Co-sponsored bill to expand mental health services in rural communities, matching campaign platform.",
-        timestamp: "3 days ago",
+          "A major mental health access bill takes effect in 2025 alongside new oversight reports and reviews of hospital regulations.",
+        timestamp: "3 hours ago",
+      },
+      {
+        id: 4,
+        title: "Stakeholders Unanimously Support Transparency in Healthcare Budgeting",
+        representative: "Senate Health Committee",
+        alignment: 90,
+        category: "Healthcare",
+        summary:
+          "Providers and agencies back a bill improving understanding of rate requests and budget proposals, with no opposing testimony.",
+        timestamp: "5 hours ago",
       },
       {
         id: 5,
-        title: "Climate Policy Update",
-        representative: "Sen. Maria Garcia",
-        alignment: 92,
-        category: "Environment",
+        title: "Legislature Prepares Long-Term Healthcare and Mental Health Oversight",
+        representative: "State Health Agencies",
+        alignment: 84,
+        category: "Healthcare",
         summary:
-          "Strong alignment between campaign promises and legislative actions on renewable energy.",
-        timestamp: "1 day ago",
+          "Annual psychiatric medication reviews, hospital safety priorities, and regulatory updates shape future healthcare policy.",
+        timestamp: "3 days ago",
       },
+  
+      //
+      // ENVIRONMENT (2)
+      //
       {
         id: 6,
-        title: "Water Quality Protection Act",
-        representative: "Rep. David Lee",
-        alignment: 78,
+        title: "Energy Transition Report Mandated Under New Legislation",
+        representative: "Energy & Digital Infrastructure Committee",
+        alignment: 89,
         category: "Environment",
         summary:
-          "Voted in favor of strengthening water quality standards, consistent with environmental platform.",
-        timestamp: "4 days ago",
+          "Annual statewide reporting will track equity, economic impacts, and regional burdens of Vermont’s clean energy transition.",
+        timestamp: "1 day ago",
       },
       {
         id: 7,
-        title: "Education Funding Vote",
-        representative: "Rep. Michael Chen",
-        alignment: 45,
-        category: "Education",
+        title: "Infrastructure Mapping Aims to Strengthen Grid Reliability",
+        representative: "Public Utility Commission",
+        alignment: 83,
+        category: "Environment",
         summary:
-          "Voted against increased education funding, citing budget concerns despite campaign commitments.",
-        timestamp: "2 days ago",
+          "Utilities must identify optimal locations for energy storage and flexible load facilities to boost resilience and affordability.",
+        timestamp: "4 days ago",
       },
+  
+      //
+      // EDUCATION (2)
+      //
       {
         id: 8,
-        title: "Student Loan Relief Program",
-        representative: "Sen. Emily Brown",
-        alignment: 91,
+        title: "Vermont Unveils New Education Funding Formula",
+        representative: "House Education Committee",
+        alignment: 78,
         category: "Education",
         summary:
-          "Introduced legislation to expand student loan forgiveness programs, fulfilling campaign promise.",
-        timestamp: "6 hours ago",
-      },
-      {
-        id: 9,
-        title: "Criminal Justice Reform Bill",
-        representative: "Sen. James Wilson",
-        alignment: 85,
-        category: "Justice",
-        summary:
-          "Co-sponsored comprehensive criminal justice reform focusing on sentencing reform and rehabilitation programs.",
+          "A statewide property tax restructure and new homestead exemption aim to improve equity and reduce tax burdens.",
         timestamp: "1 day ago",
       },
       {
+        id: 9,
+        title: "Education Finance Reform Targets Property Tax Stability",
+        representative: "Commission on Public Education",
+        alignment: 80,
+        category: "Education",
+        summary:
+          "New funding model enhances income sensitivity and requires fiscal analyses to prevent increases in education tax bills.",
+        timestamp: "6 hours ago",
+      },
+  
+      //
+      // JUSTICE (2)
+      //
+      {
         id: 10,
-        title: "Police Accountability Measures",
-        representative: "Rep. Lisa Anderson",
-        alignment: 70,
+        title: "Lawmakers Advance Criminal Justice Reform and Public Safety Bills",
+        representative: "Judiciary Committees",
+        alignment: 74,
         category: "Justice",
         summary:
-          "Voted in favor of increased police transparency and accountability measures, aligning with campaign platform.",
+          "Bills on sealing criminal records, immigration oversight, and public safety restructuring move forward with broad support.",
         timestamp: "2 days ago",
       },
       {
         id: 11,
-        title: "Immigration Court Backlog Reform",
-        representative: "Sen. Carlos Rodriguez",
-        alignment: 68,
+        title: "Financial Savings Explored Through Justice System Diversions",
+        representative: "Judiciary & Corrections",
+        alignment: 79,
         category: "Justice",
         summary:
-          "Introduced bill to address immigration court backlog and improve due process for asylum seekers.",
+          "A major report examines strategies to divert individuals from correctional facilities and reduce long-term state costs.",
         timestamp: "3 days ago",
-      },
+      }
     ],
     []
   );
+  
 
   const filteredStories = useMemo(() => {
     if (selectedCategory === "All") {
