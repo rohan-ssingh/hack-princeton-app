@@ -252,23 +252,25 @@ export function Chat({
       //
       {
         id: 1,
-        title: "Tax Policy Debate Centers on Equity and Modernization",
+        title: "Debating Tax Policy: Balancing Equity with Modernization Efforts",
         representative: "State Fiscal Committees",
         alignment: 76,
         category: "Economy",
         summary:
-          "Lawmakers weigh revisions to tax credits and investments in digital tax administration, aiming to balance fairness with modernization.",
+          "Lawmakers examine revisions to tax credits, modernization funding, and fairness concerns within the tax system.",
         timestamp: "1 day ago",
+        body: "At the heart of Vermont's legislative discussions on taxation lies a fundamental tension between ensuring equitable public burdens and driving modernization within the state's fiscal framework. The Ways and Means Committee explicitly states its dual focus: not only to generate revenue for government operations but also to ensure the tax system 'works for all Vermonters' and 'reflects the priorities of the people of the state.' This declaration sets the stage for ongoing debates about fairness and the distribution of financial responsibilities.\n\nRevisions to tax credits, exemplified by S.51, represent a key area of policy contention. Such revisions often spark discussions about the effectiveness of existing credits, whether they achieve their intended goals, and if they contribute to an equitable tax landscape. The very act of revising tax credits implies a re-evaluation of their current impact and a potential shift in how public resources are allocated through the tax system.\n\nOn the modernization front, the state is actively investing in projects like the digitization of paper tax forms through the tax modernization fund. This initiative, while seemingly administrative, carries significant policy implications. Arguments for such projects often center on increasing efficiency, reducing administrative costs, and improving the overall experience for taxpayers. The move towards electronic processing reflects a broader push to deliver 'twenty first century services' and adapt to contemporary technological standards.\n\nThe Joint Fiscal Office, through its 'issue briefs,' frequently delves into 'hot button issues' that draw significant public and legislative attention. While specific debates are not detailed, the existence of these briefs points to areas where policy decisions are actively being questioned, discussed, and potentially revised, underscoring the dynamic nature of tax policy in the state.",
       },
       {
         id: 2,
-        title: "Community Priorities Drive Tax and Economic Policy",
+        title: "Community Voices Shape State's Tax and Economic Priorities",
         representative: "Economic Progress Council",
         alignment: 82,
         category: "Economy",
         summary:
-          "Public concerns about housing and basic needs shape fiscal agendas, supported by annual reports and modernization initiatives.",
+          "Housing, basic needs, and community priorities guide fiscal strategy through reports and modernization initiatives.",
         timestamp: "2 days ago",
+        body: "The pulse of Vermont's communities is a vital force in shaping the state's tax and economic policies, with legislative priorities directly informed by public needs and stakeholder feedback. A comprehensive fifteen-page policy document guides the legislature, covering a wide array of areas from environment to transportation, housing, land use, and public safety. This extensive framework ensures that diverse community concerns are considered when crafting fiscal strategies.\n\nOne clear example of this focus is the upcoming release of the 'basic needs budget,' a report directly addressing the fundamental well-being of Vermonters. This document is expected to provide critical insights into the financial requirements to meet essential community needs, undoubtedly stemming from ongoing dialogue and data collection related to local living standards.\n\nHousing, a persistent concern for many communities, also receives dedicated attention. Annually, by April 1, the Vermont Economic Progress Council and the Department of Taxes are mandated to submit a report specifically on housing infrastructure projects. This report is a crucial tool for assessing progress and identifying areas for further investment, directly responding to a key community priority.\n\nLegislative priorities explicitly aim to 'support local government, do its job, modernize, deliver twenty first century services, and then take action with us to do bigger policy work around housing, public safety that we can't do on our own.' This statement underscores a collaborative approach, acknowledging that effective policy-making requires understanding the unique context of the state's families and communities. While direct public testimony is not detailed in the context, the emphasis on local government support and addressing broad societal issues like housing and public safety inherently involves integrating community concerns into the legislative process.",
       },
   
       //
@@ -276,33 +278,36 @@ export function Chat({
       //
       {
         id: 3,
-        title: "Healthcare Reform Set for July 2025 Implementation",
+        title: "Future Focus: July 2025 Effective Date and Ongoing Oversight for Healthcare Priorities",
         representative: "Health & Human Services",
         alignment: 88,
         category: "Healthcare",
         summary:
-          "A major mental health access bill takes effect in 2025 alongside new oversight reports and reviews of hospital regulations.",
+          "A major mental health access bill takes effect in 2025 alongside new oversight reports and hospital regulation reviews.",
         timestamp: "3 hours ago",
+        body: "The path forward for healthcare and mental health policy is marked by several key dates and ongoing priorities. A significant milestone is the effective date of July 1, 2025, for a bill that addresses mental health care access and considerations for implementing security plans within healthcare facilities, signaling a firm timeline for these reforms.\n\nContinuous oversight will be maintained through annual reports, including the Clinical Utilization Review Board's findings from the Department of Vermont Health Access, which legislators hope will incorporate their interests. Additionally, an independent consultant's annual evaluation of the administration of involuntary non-emergency psychiatric medications, mandated by the Department of Mental Health, will provide crucial insights into ongoing practices.\n\nLegislative priorities for the upcoming period include seriously considering a bill addressing violence in hospitals, building upon previous work, and another concerning prescription drug prescribing. The role of the healthcare advocate is also highlighted as critically important. The Green Mountain Care Board is slated to review a hospital regulation bill, with a commitment to thoroughly understand its implications before determining the path forward. Furthermore, a bill requested by the Green Mountain Care Board regarding monetary thresholds for certificates of need is anticipated to proceed with potentially less resistance, streamlining certain aspects of healthcare infrastructure development. These combined efforts underscore a commitment to evolving and refining the state's healthcare and mental health systems.",
       },
       {
         id: 4,
-        title: "Stakeholders Unanimously Support Transparency in Healthcare Budgeting",
+        title: "Stakeholders Voice Support for Transparency and Integrated Care in Legislative Hearings",
         representative: "Senate Health Committee",
         alignment: 90,
         category: "Healthcare",
         summary:
-          "Providers and agencies back a bill improving understanding of rate requests and budget proposals, with no opposing testimony.",
+          "Providers and agencies support improved transparency for provider rate requests and budgeting, with no opposing testimony.",
         timestamp: "5 hours ago",
+        body: "Legislative committees have heard from a wide array of stakeholders, demonstrating robust engagement in the ongoing discourse on healthcare and mental health policy. The Senate Health's Healthcare Committee, in particular, has received testimony from numerous witnesses, indicating a comprehensive effort to gather diverse perspectives and refine proposed language.\n\nA bill designed to provide the Legislature with a clearer understanding of rate increase requests from providers and budgetary proposals from the administration has garnered significant positive feedback. It is strongly supported by the Agency of Human Services and the provider community, with a notable absence of opposition testimony. This consensus highlights a shared desire for greater transparency and a common factual basis in financial decision-making within the healthcare sector.\n\nFurther engagement comes from key governmental and regulatory bodies, including the Department of Health, the Attorney General's Office, the Office of Professional Regulation, and the Board of Medical Practice, all of whom have contributed to the legislative process. The Office of Health Care Advocate and the Long Term Care Ombudsman are also poised to play a role in applications for certificates of need, advocating for specific patient populations. Community concerns have also emerged regarding the precise definition of 'behavioral health,' with 'folks who do have mental health issues or do have a substance use disorder concerns' highlighting the importance of accurate terminology to avoid misunderstanding and ensure appropriate care.",
       },
       {
         id: 5,
-        title: "Legislature Prepares Long-Term Healthcare and Mental Health Oversight",
+        title: "Future Focus: July 2025 Effective Date and Ongoing Oversight for Healthcare Priorities",
         representative: "State Health Agencies",
         alignment: 84,
         category: "Healthcare",
         summary:
-          "Annual psychiatric medication reviews, hospital safety priorities, and regulatory updates shape future healthcare policy.",
+          "Annual psychiatric medication reviews, hospital violence legislation, and regulation updates shape future healthcare policy.",
         timestamp: "3 days ago",
+        body: "Annual psychiatric medication reviews, hospital violence legislation, and regulation updates shape future healthcare policy.",
       },
   
       //
@@ -310,23 +315,25 @@ export function Chat({
       //
       {
         id: 6,
-        title: "Energy Transition Report Mandated Under New Legislation",
+        title: "Legislature Advances Key Bills to Chart Vermont's Energy Future",
         representative: "Energy & Digital Infrastructure Committee",
         alignment: 89,
         category: "Environment",
         summary:
-          "Annual statewide reporting will track equity, economic impacts, and regional burdens of Vermont’s clean energy transition.",
+          "Annual reporting and system mapping aim to guide Vermont’s clean energy transition and infrastructure planning.",
         timestamp: "1 day ago",
+        body: "Annual reporting and system mapping aim to guide Vermont’s clean energy transition and infrastructure planning.",
       },
       {
         id: 7,
-        title: "Infrastructure Mapping Aims to Strengthen Grid Reliability",
+        title: "Understanding the Economic Ripple Effect: Vermont's Energy Transition Under Scrutiny",
         representative: "Public Utility Commission",
         alignment: 83,
         category: "Environment",
         summary:
-          "Utilities must identify optimal locations for energy storage and flexible load facilities to boost resilience and affordability.",
+          "New reports track regional benefits, electric rates, EV adoption, and solar capacity to ensure an equitable transition.",
         timestamp: "4 days ago",
+        body: "New reports track regional benefits, electric rates, EV adoption, and solar capacity to ensure an equitable transition.",
       },
   
       //
@@ -334,23 +341,25 @@ export function Chat({
       //
       {
         id: 8,
-        title: "Vermont Unveils New Education Funding Formula",
+        title: "Vermont Overhauls Education Funding: New Foundation Formula and Property Tax Structure Unveiled",
         representative: "House Education Committee",
         alignment: 78,
         category: "Education",
         summary:
-          "A statewide property tax restructure and new homestead exemption aim to improve equity and reduce tax burdens.",
+          "A new statewide education funding formula restructures property taxes and introduces a homestead exemption.",
         timestamp: "1 day ago",
+        body: "A new statewide education funding formula restructures property taxes and introduces a homestead exemption.",
       },
       {
         id: 9,
-        title: "Education Finance Reform Targets Property Tax Stability",
+        title: "Education Funding Overhaul Aims to Stabilize Property Taxes and Enhance Income Sensitivity",
         representative: "Commission on Public Education",
         alignment: 80,
         category: "Education",
         summary:
-          "New funding model enhances income sensitivity and requires fiscal analyses to prevent increases in education tax bills.",
+          "Fiscal analysis outlines efforts to stabilize education taxes, expand income sensitivity, and manage fund pressures.",
         timestamp: "6 hours ago",
+        body: "Fiscal analysis outlines efforts to stabilize education taxes, expand income sensitivity, and manage fund pressures.",
       },
   
       //
@@ -358,27 +367,30 @@ export function Chat({
       //
       {
         id: 10,
-        title: "Lawmakers Advance Criminal Justice Reform and Public Safety Bills",
+        title: "Vermont Legislature Advances Key Public Safety and Justice Measures",
         representative: "Judiciary Committees",
         alignment: 74,
         category: "Justice",
         summary:
-          "Bills on sealing criminal records, immigration oversight, and public safety restructuring move forward with broad support.",
+          "Bills on sealing records, immigration agreements, and public safety restructuring move forward with broad support.",
         timestamp: "2 days ago",
+        body: "Bills on sealing records, immigration agreements, and public safety restructuring move forward with broad support.",
       },
       {
         id: 11,
-        title: "Financial Savings Explored Through Justice System Diversions",
+        title: "Criminal Justice Reforms Poised for Potential Financial Savings in Vermont",
         representative: "Judiciary & Corrections",
         alignment: 79,
         category: "Justice",
         summary:
-          "A major report examines strategies to divert individuals from correctional facilities and reduce long-term state costs.",
+          "A judiciary-led report explores diversion strategies to reduce incarceration and generate long-term savings.",
         timestamp: "3 days ago",
+        body: "A judiciary-led report explores diversion strategies to reduce incarceration and generate long-term savings.",
       }
     ],
     []
   );
+  
   
 
   const filteredStories = useMemo(() => {
