@@ -27,6 +27,7 @@ import type { AppUsage } from "@/lib/usage";
 import type { VisibilityType } from "./visibility-selector";
 import { cn, generateUUID } from "@/lib/utils";
 import { toast } from "./toast";
+import { getArticles, createArticleSlug } from "@/lib/articles";
 
 type Story = {
   id: number;
@@ -165,6 +166,7 @@ export function Chat({
   const [selectedText, setSelectedText] = useState("");
   const [chatStatus, setChatStatus] = useState<"idle" | "loading">("idle");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null);
 
   const messageEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -260,7 +262,7 @@ export function Chat({
         alignment: 72,
         category: "Economy",
         summary:
-          "Introduced comprehensive tax reform bill focusing on middle-class relief and corporate accountability.",
+          "Introduced comprehensive reform bill focusing on middle-class relief and corporate accountability.",
         timestamp: "1 day ago",
       },
       {
@@ -738,6 +740,7 @@ export function Chat({
                     </div>
                     <button
                       type="button"
+                      onClick={() => setSelectedStory(story)}
                       className="text-sm font-semibold text-gray-400 transition-colors hover:text-gray-200"
                     >
                       View Details →
@@ -927,6 +930,125 @@ export function Chat({
           {isChatExpanded ? "Collapse chat" : "Expand chat"}
         </span>
       </button> */}
+
+      {/* Story Detail Modal */}
+      {selectedStory && (() => {
+        const articles = getArticles();
+        const storySlug = createArticleSlug(selectedStory.category, selectedStory.title);
+        const matchingArticle = articles.find(
+          (article) => createArticleSlug(article.categoryName, article.title) === storySlug
+        );
+
+        const renderParagraphs = (content: string) => {
+          return content
+            .split(/\n{2,}/)
+            .map((paragraph) => paragraph.trim())
+            .filter(Boolean);
+        };
+
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto"
+            onClick={() => setSelectedStory(null)}
+          >
+            <div
+              className="relative w-full max-w-3xl rounded-2xl border border-gray-800 bg-gray-900 p-6 shadow-2xl my-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setSelectedStory(null)}
+                className="absolute right-4 top-4 text-gray-400 transition-colors hover:text-white z-10"
+              >
+                <span className="text-2xl">&times;</span>
+              </button>
+
+              <header className="mb-6 space-y-4">
+                <span className="inline-flex rounded-full border border-gray-700 bg-gray-800/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-300">
+                  {selectedStory.category}
+                </span>
+                <h1 className="text-2xl font-bold text-white">{selectedStory.title}</h1>
+                <div className="flex items-center space-x-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-700">
+                    <User className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">{selectedStory.representative}</h3>
+                    <div className="flex items-center space-x-1.5 text-xs text-gray-400">
+                      <Clock className="h-3 w-3" />
+                      <span>{selectedStory.timestamp}</span>
+                    </div>
+                  </div>
+                </div>
+              </header>
+
+              <article className="space-y-6 max-h-[60vh] overflow-y-auto">
+                {matchingArticle ? (
+                  <>
+                    <div className="prose prose-invert max-w-none space-y-4 text-gray-200">
+                      {renderParagraphs(matchingArticle.body).map((paragraph, index) => (
+                        <p key={`paragraph-${index}`} className="leading-relaxed">
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+
+                    {matchingArticle.references.length > 0 && (
+                      <section className="space-y-3 border-t border-gray-800 pt-6">
+                        <h2 className="text-lg font-semibold text-white">Sources</h2>
+                        <ul className="space-y-2 text-sm text-gray-300">
+                          {matchingArticle.references.map((reference, index) => (
+                            <li key={index}>
+                              <a
+                                className="underline-offset-4 transition hover:text-white hover:underline break-all"
+                                href={reference}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                              >
+                                {reference}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-200 leading-relaxed">{selectedStory.summary}</p>
+
+                    <div className="border-t border-gray-800 pt-4">
+                      <h2 className="mb-3 text-lg font-semibold text-white">Alignment Score</h2>
+                      <div className="flex items-center space-x-3">
+                        <div className="h-3 w-48 overflow-hidden rounded-full bg-gray-800/50">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              selectedStory.alignment >= 80
+                                ? "bg-gray-200"
+                                : selectedStory.alignment >= 60
+                                ? "bg-gray-500"
+                                : "bg-gray-700"
+                            )}
+                            style={{ width: `${selectedStory.alignment}%` }}
+                          />
+                        </div>
+                        <span className="text-lg font-bold text-white">
+                          {selectedStory.alignment}%
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm text-gray-400">
+                        This alignment score represents how closely the representative's actions
+                        match their campaign promises and public statements.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </article>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
